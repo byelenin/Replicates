@@ -22,3 +22,9 @@ __pycache__/
 **/CPS_input.dta
 **/cps_matched.dta
 **/talent_check.dta
+
+# 除了readme之外的markdown文件
+
+**/!*README.md
+
+
