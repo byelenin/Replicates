@@ -24,7 +24,7 @@ __pycache__/
 **/talent_check.dta
 
 # 除了readme之外的markdown文件
-
-**/!*README.md
+*.md
+!readme.md
 
 
