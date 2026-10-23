@@ -1,25 +1,27 @@
 # Introduction
 
-This project is all about replicating materials of a couple of papers for [Applied MicroEconometrics]() course taught by Zhaopeng Qu at Nanjing University. 
+This project is all about replicating materials of a couple of papers for [Applied Microeconometrics:From Reduced Form to Structural Econometrics](https://byelenin.github.io/AME2026/) course taught by Zhaopeng Qu at Nanjing University. 
 
 
 Every paper will be replicated in a separate repository.
 
 The repositories will be structured as follows:
 
-- `paper`: This will contain the paper itself and appendix and other documents of the paper.
-- `original_code`: This will contain the original code provided by the paper author.
-- `replication_code`: This will contain the replication code written by myself and students. 
+| Folder | Contents |
+| --- | --- |
+| `paper` | The paper itself, the appendix, and other documents of the paper |
+| `original_code` | The original code provided by the paper author |
+| `replication_code` | The replication code written by myself and students |
 
-- And in both of the repositories, there will be a `README.md` file that will explain the structure of the repository and the purpose of the code. 
+`original_code` and `replication_code` each contain a `README.md` that explains the structure of that folder and the purpose of the code. Inside each of them:
 
-- more specific structure will be as follows:
+| Folder | Contents |
+| --- | --- |
+| `data` | The data used in the paper |
+| `code` | The code used to replicate the paper. In `original_code`, this is the code provided by the paper author |
+| `results` | Tables and figures from the replication |
 
-- `data`: This will contain the data used in the paper.
-- `code`: This will contain the code used to replicate the paper.The original code will be provided by the paper author. 
-- `results`: This will contain the results in terms of tables and figures of the replication.
-
-The code will be written in Stata and will be used to replicate the paper.
+The code will be written in Stata/R/Matlab and will be used to replicate the paper.
 
 
 
