@@ -1,6 +1,6 @@
 # Introduction
 
-This project is all about replicating published academic papers in Economics.
+This project is all about replicating materials of a couple of papers for [Applied MicroEconometrics]() course taught by Zhaopeng Qu at Nanjing University. 
 
 
 Every paper will be replicated in a separate repository.
