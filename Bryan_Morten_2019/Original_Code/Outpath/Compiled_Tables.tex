@@ -1,0 +1,82 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}	
+\usepackage{booktabs,array,dcolumn,threeparttable}
+\usepackage{multirow, multicol}
+			% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb}
+
+%SetFonts
+
+%SetFonts
+
+
+\title{Tables from Bryan and Morten: ``The Aggregate Productivity Effects of Internal Migration''}
+\date{}	
+
+\begin{document}
+\maketitle
+%\section{}
+%\subsection{}
+
+%%%%%%%%%%%
+%%%% FIGURES
+%%%%%%%%%%%
+
+% Figure 1
+\includegraphics{wage_distributions_regency_yr.eps}
+
+% Figure 2
+% Not applicable
+
+% Figure 3
+% Move to appendix
+
+% Figure 4
+\includegraphics{correlates_transport_cost_month_educ_all_est_nonparam.eps}
+
+% Figure 5
+\includegraphics{us_ind_distance_month_educ_all_est_nonparam.eps}
+
+% Figure 6
+\includegraphics{figure_pca_amenities__month_educ_all_est_nonparam.eps}
+
+% Figure 7
+\includegraphics{loq_q_0_educ_all_month_educ_all_est_nonparam.eps}
+
+% Figure 8
+\includegraphics{output_multchange_all_nonparam_0.eps}
+
+% Figure 9
+\includegraphics{distributional_histogramind_reduce100_nonparam_0.eps}
+
+% Figure 10
+\includegraphics{distributional_histogram_mig_ind_reduce30_nonparam_0.eps}
+
+
+%%%%%%%%%%%
+%%%% TABLES
+%%%%%%%%%%%
+
+
+% Table 1: 
+\input{within_mig.tex}
+
+% Table 2: 
+\input{reduced_form_facts_baseline_rgcy.tex}
+
+% Table 3: 
+\input{reduced_form_facts_us.tex}
+
+% Table 4:
+\input{structural_rho_both__month_educ_all_est_nonparam.tex}
+
+% Table 5:
+\input{table_selection_policy_reduce100_nonparam_0.tex}
+
+
+\end{document}  

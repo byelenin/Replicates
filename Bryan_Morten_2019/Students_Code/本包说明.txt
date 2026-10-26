@@ -1,0 +1,97 @@
+Bryan & Morten (2019) 复现 —— 完整包说明
+================================================================================
+
+【一】这个文件夹里有什么
+--------------------------------------------------------------------------------
+    Bryan_Morten_2019_复现_完整包\
+    ├── 本包说明.txt              ← 本文件（包结构 + 路径对照）
+    ├── 代码\                     ← 94 个 do 脚本 + 93 个日志 + README + 清单
+    │   ├── README.md
+    │   ├── 需要的文件清单.txt
+    │   ├── 00_环境与依赖\
+    │   ├── 01_Table1_印尼迁移率\
+    │   ├── 02_Table2_印尼五个事实\
+    │   ├── 03_Table3_美国四个事实\
+    │   ├── 04_Table4_Frechet参数\
+    │   ├── 05_Table5_反事实\
+    │   ├── 06_拓展分析\
+    │   └── 07_早期探索_20261017-20\
+    └── 数据\                     ← 11 个数据文件（合计 2.15 GB）
+        ├── （大文件：原始数据）
+        ├── （小文件：中间数据与距离表）
+        └── 复现\                 ← 小文件的副本，对应原 D:\研一上\微观计量\复现\ 这个目录
+
+合计：约 2.16 GB，其中数据 2.15 GB。
+
+【二】数据文件清单与原始位置对照
+--------------------------------------------------------------------------------
+  包内位置                          大小        脚本里期望的原始路径
+  ------------------------------   ---------   ------------------------------------------------
+  数据\ipumsi_00002.dta            2018.1 MB   D:\研一上\微观计量\ipumsi_00002.dta
+  数据\usa_od.csv                   138.3 MB   C:\Users\任娜\Documents\deepseek-harness\
+                                                 default-workspace\usa_od.csv
+  数据\ipumsi_00001.dta              21.3 MB   D:\研一上\微观计量\ipumsi_00001.dta
+  数据\ipumsi_00003.dta              16.4 MB   D:\研一上\微观计量\ipumsi_00003.dta
+  数据\idn_od_panel_regency.dta       1.4 MB   D:\研一上\微观计量\复现\idn_od_panel_regency.dta
+  数据\idn_regency_dist.csv           0.9 MB   D:\研一上\微观计量\复现\idn_regency_dist.csv
+  数据\idn_od_panel.dta              30.7 KB   D:\研一上\微观计量\复现\idn_od_panel.dta
+  数据\idn_od_panel_malehead.dta     29.3 KB   D:\研一上\微观计量\复现\idn_od_panel_malehead.dta
+  数据\idn_prov_dist25.csv            9.3 KB   D:\研一上\微观计量\复现\idn_prov_dist25.csv
+  数据\us_state_centroids.csv         6.6 KB   D:\研一上\微观计量\复现\us_state_centroids.csv
+  数据\us_state_fips2usps.csv         0.4 KB   D:\研一上\微观计量\复现\us_state_fips2usps.csv
+
+  「数据\复现\」子文件夹里放的是后 7 个小文件的副本 —— 因为有一部分脚本把路径写成
+  root\复现\xxx.csv（root 指向上级目录），保留这个子目录能让那种写法也对得上。
+
+【三】重要：脚本里的路径是写死的
+--------------------------------------------------------------------------------
+  本包中的 .do 文件与原版【完全一致，一个字都没有改】。
+  它们内部写死了上面第二节里那些绝对路径。
+
+  ⇒ 在原电脑上：所有脚本都能直接跑（数据就在原来的位置）。
+  ⇒ 换到别的电脑：需要改路径，或者把数据放回上述原始路径。
+
+  还要特别注意：宏名 root 在不同脚本里含义不同 ——
+      多数脚本        local root "D:\研一上\微观计量"
+      11 个 t3_*.do   local root "C:\Users\任娜\Documents\deepseek-harness\default-workspace"
+      fz              D:\研一上\微观计量\复现
+      ussrc           ……\usa_od.csv 的完整路径（6 个脚本）
+      work            工作区绝对路径（alpha_d_replication.do）
+  ⇒ 不能批量替换，必须逐个脚本看它的 local 定义。
+
+【四】Stata 外部命令（需自行安装）
+--------------------------------------------------------------------------------
+  ssc install reghdfe, replace        （135 处调用）
+  ssc install ppmlhdfe, replace       （10 处）
+  ssc install estout, replace         （1 处 esttab）
+  ssc install gtools, replace         （reghdfe 依赖）
+  ssc install moremata, replace       （reghdfe 依赖）
+  ssc install require, replace        （reghdfe v6 依赖管理器）
+
+  Stata 自带无需安装：ivpoisson / gmm / ivregress / areg / bootstrap / mata
+
+  注意：00_环境与依赖\install_deps.do 只装后三个依赖，
+        它假设 reghdfe 本体已经装好（脚本里只做 which reghdfe 检查）。
+
+【五】数据来源
+--------------------------------------------------------------------------------
+  印尼：IPUMS International，1995 SUPAS（ipumsi_00002.dta）
+        另有两个早期数据 ipumsi_00001.dta、ipumsi_00003.dta（1976 年，仅拓展/早期脚本用）
+  美国：IPUMS USA，1990 年 5% 普查样本 + 2010 ACS，已整理成 usa_od.csv
+  距离表：印尼 idn_regency_dist.csv / idn_prov_dist25.csv；
+          美国州质心 us_state_centroids.csv + us_state_fips2usps.csv（据此算州间距离）
+
+【六】本包【没有】包含、也无法包含的
+--------------------------------------------------------------------------------
+  1. PODES 设施调查数据 —— 缺失
+     ⇒ 论文 Table 2 第 (5) 列（Amenities / 补偿性工资差异）无法复现
+  2. 2011 / 2012 SUSENAS —— IPUMS 未提供
+     ⇒ 印尼部分只有 1995 一年，论文用的是 1995/2011/2012 三年
+  3. 论文附录表 3、4、6，Figure 3、5，附录 Figure 1 —— 未复现
+
+【七】复现结果摘要
+--------------------------------------------------------------------------------
+  详见 代码\README.md 第七节。要点：
+    · 论文的定性结论全部复现（四个事实、选择效应、反事实方向）
+    · 定量差距主要来自数据可得性（印尼 221 县 / 1 年 vs 论文 281 县 / 3 年）
+    · 美国 Table 3 第 (1) 列差距最大（2.13 倍），主要来自距离口径
