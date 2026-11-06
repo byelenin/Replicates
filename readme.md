@@ -24,11 +24,13 @@ The repositories will be structured as follows:
 
 | Folder | Contents |
 | --- | --- |
-| `data` | The data used in the paper |
+| `data` / `数据` | The data used in the paper. Large datasets are **not** stored in this git repo (GitHub 100MB limit); download them from [Google Drive: ReplicatesData](https://drive.google.com/drive/folders/1pYAhwDWryigIQRE-vUxyZ2QvfPRX1eJI) into the matching paper subfolder (`ReplicatesData/<PaperName>/...`) before running the code |
 | `code` | The code used to replicate the paper. In `original_code`, this is the code provided by the paper author |
 | `results` | Tables and figures from the replication |
 
 The code will be written in Stata/R/Matlab and will be used to replicate the paper.
+
+**Data download:** [ReplicatesData (Google Drive)](https://drive.google.com/drive/folders/1pYAhwDWryigIQRE-vUxyZ2QvfPRX1eJI) — one subfolder per paper (`Bryan_Morten_2019`, `Lagakos_Waugh_2013`, `HKLM`, `HHJK`, `Eaton_Kortum_2002`).
 
 ## Reading List
 
