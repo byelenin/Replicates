@@ -1,0 +1,4389 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\demo_out.log
+  log type:  text
+ opened on:  26 Oct 2026, 09:26:16
+
+. 
+. use year bplid geo1_id incwage perwt sex relate age using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. keep if sex == 1 & relate == 1 & inrange(age, 15, 65)
+(583,784 observations deleted)
+
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. keep if inrange(o, 11, 18) | inrange(o, 31, 35) | inrange(o, 51, 54)
+(1,491 observations deleted)
+
+. keep if inrange(d, 11, 18) | inrange(d, 31, 35) | inrange(d, 51, 54)
+(4,963 observations deleted)
+
+. 
+. display _n(2) "================ A. 记录数 vs 加权人数 ================"
+
+
+================ A. 记录数 vs 加权人数 ================
+
+. quietly count
+
+. display "  数据里一共有 " %9.0f r(N) " 条【记录】（每行一个人）"
+  数据里一共有    128599 条【记录】（每行一个人）
+
+. gen double one = 1
+
+. quietly summarize one
+
+. display "  把 one 加起来 = " %14.0f r(sum) "   ← 这就是【不加权】的人数"
+  把 one 加起来 =         128599   ← 这就是【不加权】的人数
+
+. quietly summarize perwt
+
+. display "  把 perwt 加起来 = " %12.0f r(sum) "   ← 这才是【加权人数】"
+  把 perwt 加起来 =     31429083   ← 这才是【加权人数】
+
+. display ""
+
+
+. display "  perwt 均值 = " %8.2f r(mean) "  （平均每条记录代表多少真人）"
+  perwt 均值 =   244.40  （平均每条记录代表多少真人）
+
+. display "  perwt 最小 = " %8.1f r(min)  "   最大 = " %8.1f r(max)
+  perwt 最小 =     10.0   最大 =   2643.0
+
+. display ""
+
+
+. display "  → 差别有多大：加权人数是记录数的 " %6.1f r(sum)/_N " 倍"
+  → 差别有多大：加权人数是记录数的  244.4 倍
+
+. 
+. display _n(2) "================ B. 有工资记录的人有多少 ================"
+
+
+================ B. 有工资记录的人有多少 ================
+
+. gen byte hasw = !missing(incwage) & incwage > 0 & incwage < 9999999
+
+. quietly count if hasw
+
+. display "  有工资记录的人：" %9.0f r(N) " 条记录（占全部记录的 " %5.2f 100*r(N)/_N "%）"
+  有工资记录的人：    48498 条记录（占全部记录的 37.71%）
+
+. display "  → 论文说的数据缺陷就是这里：自雇者和农业人口没有工资记录。"
+  → 论文说的数据缺陷就是这里：自雇者和农业人口没有工资记录。
+
+. 
+. display _n(2) "================ C. 挑一个小到能手算的 (o,d) 组 ================"
+
+
+================ C. 挑一个小到能手算的 (o,d) 组 ================
+
+. bysort o d: gen long ngrp = _N
+
+. bysort o d: egen long nw  = total(hasw)
+
+. gen byte ismix = (nw > 0 & nw < ngrp)
+
+. gsort -ismix o d
+
+. local o1 = o[1]
+
+. local d1 = d[1]
+
+. keep if o == `o1' & d == `d1'
+(124,407 observations deleted)
+
+. quietly count
+
+. display "  这一组：出生省 o = `o1'，现居省 d = `d1'"
+  这一组：出生省 o = 11，现居省 d = 11
+
+. display "  组内共 " %2.0f r(N) " 人，其中有工资记录的见下表（有缺口的行 incwage 是 .）"
+  组内共 4192 人，其中有工资记录的见下表（有缺口的行 incwage 是 .）
+
+. display ""
+
+
+. display "  【collapse 之前】一个人一行："
+  【collapse 之前】一个人一行：
+
+. list o d perwt incwage hasw, noobs sep(0)
+
+  +--------------------------------------+
+  |  o    d   perwt       incwage   hasw |
+  |--------------------------------------|
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178        130000      1 |
+  | 11   11     337        255000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131        360000      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      74        305000      1 |
+  | 11   11     101        435000      1 |
+  | 11   11     131        448200      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101        180000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     334         91000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131        171000      1 |
+  | 11   11      99        150000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        332500      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12        120000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101         65000      1 |
+  | 11   11     161        467000      1 |
+  | 11   11      73        105000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        530000      1 |
+  | 11   11      12        175000      1 |
+  | 11   11      99        150000      1 |
+  | 11   11     337        222200      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74        150000      1 |
+  | 11   11      88        110000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     101        800000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     132        308000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208        210000      1 |
+  | 11   11      12        600000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        250000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     337        137000      1 |
+  | 11   11     195        245000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12        216500      1 |
+  | 11   11      99        330000      1 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334        350000      1 |
+  | 11   11      16        133800      1 |
+  | 11   11     208        416000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     337        280000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12         96000      1 |
+  | 11   11     208         42000      1 |
+  | 11   11     257        287500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        865760      1 |
+  | 11   11     178        305000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178        164560      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101        155000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88        200000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      16        191200      1 |
+  | 11   11      99        419000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     334        180000      1 |
+  | 11   11     195        200000      1 |
+  | 11   11     131        200000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        682500      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16        426000      1 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88        180000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        280000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        250000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     257        210000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334        225000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        260000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88        450000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88        312000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178        384500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131        238000      1 |
+  | 11   11      73        180000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        250000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     195        250000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     337        270000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161        206000      1 |
+  | 11   11      16        200000      1 |
+  | 11   11     208        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257        200000      1 |
+  | 11   11      88        175000      1 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131        200000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161        136000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        193640      1 |
+  | 11   11      73        420300      1 |
+  | 11   11      88        135000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      73         67000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        144175      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131        350000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16        344000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      12        212000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74        232600      1 |
+  | 11   11      73        200000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88        105000      1 |
+  | 11   11      99        597700      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74        300000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178        206600      1 |
+  | 11   11     101        161000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257        475000      1 |
+  | 11   11     132        200000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73        389000      1 |
+  | 11   11     208        180000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257        400000      1 |
+  | 11   11      73        200000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88        260000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     187        217500      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     334        550000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        289400      1 |
+  | 11   11      73        200000      1 |
+  | 11   11     161        301500      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      73        200000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161        134000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        285000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208        215000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161        162000      1 |
+  | 11   11     257        120000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     334        210000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        435000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      16        100000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        181800      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     195        420000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        310000      1 |
+  | 11   11     131        150000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257        200000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161        120750      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73        185375      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178        260700      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161        137500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74        290000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        400000      1 |
+  | 11   11      99        401500      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99        500000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12        280000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     195        250000      1 |
+  | 11   11     334        347000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73        357500      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73        400000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178        750000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        200000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101        200000      1 |
+  | 11   11      73        190000      1 |
+  | 11   11     187        300000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     257        160000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     195        280000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     337        296000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178        210000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     334        400000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208        100000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161        380000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208        184000      1 |
+  | 11   11     161        693000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101        212000      1 |
+  | 11   11     178         97500      1 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16        265000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12        459000      1 |
+  | 11   11      88        250000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     132        112000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208         70000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257        210000      1 |
+  | 11   11      99        525200      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88        229200      1 |
+  | 11   11     101        340000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88        330000      1 |
+  | 11   11     101        286000      1 |
+  | 11   11     334        150000      1 |
+  | 11   11      99        251500      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      16        100000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99        200000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        140000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     101        224000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        225000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        156550      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        500000      1 |
+  | 11   11     132        250000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334        250000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16        329700      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161        145250      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     187        250000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     132        596000      1 |
+  | 11   11     101        204000      1 |
+  | 11   11     161        320000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178        260000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178        125000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88        150000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12        130000      1 |
+  | 11   11     208        138000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257        150000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131        265000      1 |
+  | 11   11     208        174000      1 |
+  | 11   11     161        320600      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88        180000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        150000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      16        120000      1 |
+  | 11   11      99        354800      1 |
+  | 11   11      99        527000      1 |
+  | 11   11     257        150000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      74        200000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11      12        379000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101        163000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178        149600      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     132        288000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161        300000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        230000      1 |
+  | 11   11     208        240000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208        330000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131        250000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161        122000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      16        247000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161        320000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     337        300000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        275800      1 |
+  | 11   11      74        262000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        219200      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88        100000      1 |
+  | 11   11     101        404000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178         45000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131         90000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161        242750      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73         80000      1 |
+  | 11   11     337        264000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     101        285000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208        155000      1 |
+  | 11   11     178        417000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99        350000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178        120000      1 |
+  | 11   11     131         60000      1 |
+  | 11   11     208        149950      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73        200000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257        310000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12        250000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12        210000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73        140000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11      12        150000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12        300000      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     178        235000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        600000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12        180000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131        180000      1 |
+  | 11   11      16        150000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99        229800      1 |
+  | 11   11     178        150000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178        125000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        150000      1 |
+  | 11   11     101        126000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178        203400      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73        170000      1 |
+  | 11   11     101        324000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161        350000      1 |
+  | 11   11     131        200000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        200000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208        140000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131        150000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178        150000      1 |
+  | 11   11      88        193800      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131        215000      1 |
+  | 11   11      99        371000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101        200000      1 |
+  | 11   11     208        300000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257        175000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74        208600      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88        271000      1 |
+  | 11   11     334        250000      1 |
+  | 11   11      12        315000      1 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73        250000      1 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101         65000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101        100000      1 |
+  | 11   11      99        643000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131        200000      1 |
+  | 11   11      12        168000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        800000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178        203800      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257        150000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131        300000      1 |
+  | 11   11      99        150000      1 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11     161        350000      1 |
+  | 11   11     208        266520      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99        410000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101        280000      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     334        440000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257         74550      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      16        150000      1 |
+  | 11   11     178        379750      1 |
+  | 11   11     131        200000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        180000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        224000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     187        350000      1 |
+  | 11   11      73        150000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      94        170000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        200000      1 |
+  | 11   11     178         95000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        280000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161        400000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        125000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73        194800      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99        670000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        305000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      99        222800      1 |
+  | 11   11      16        180000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208        275600      1 |
+  | 11   11     161        486000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16        280760      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257        220000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101        330000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     208        171600      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99         75000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257        315000      1 |
+  | 11   11     101        405000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     208        120000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161        220000      1 |
+  | 11   11     257        175000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161        191000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     337        655000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     272        210800      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        178800      1 |
+  | 11   11      99        363000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178        450000      1 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16        332500      1 |
+  | 11   11     257        184000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     132        272950      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     208        300000      1 |
+  | 11   11     178        217000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        110000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88        200000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        250000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257        263000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88        408000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257        280600      1 |
+  | 11   11      88        215000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178        300000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257        172000      1 |
+  | 11   11     208        119500      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208        174000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101        355000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16        226000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88        120000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     334        300000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161        133250      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88         75000      1 |
+  | 11   11     208         35000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        306700      1 |
+  | 11   11      99        300000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     101        530000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11     337        294400      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88        165000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        100000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208        178000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99         55000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16        614900      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101        200000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131        200000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161        304500      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12        233440      1 |
+  | 11   11     208        485000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178        200800      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73        547000      1 |
+  | 11   11     337        135000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      88        201500      1 |
+  | 11   11     257        213300      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     132        145000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101        190000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      16        100000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      12        356000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161        210000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        840000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334        240000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88        300000      1 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        200000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334        130000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101        315000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        160000      1 |
+  | 11   11     132        308000      1 |
+  | 11   11     178        187000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101        180000      1 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     161        275000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334        400000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16        456000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334        385000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88        182000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      94        240000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178        157500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257        300000      1 |
+  | 11   11      88        450000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131        150000      1 |
+  | 11   11     257        150000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74        150000      1 |
+  | 11   11      16         90000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73        350000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161        350002      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     337        230000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208        175000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74        170000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131        150000      1 |
+  | 11   11      99        625000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12        501000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73        272500      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74        165000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     208        120200      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88        250000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     208        183550      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257        272000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      94        160000      1 |
+  | 11   11      99        274000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     337        150000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178         53000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     257        120000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178         85000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99        382500      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257        380000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     195        263000      1 |
+  | 11   11     161        121250      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12        180000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     334        245000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73        295000      1 |
+  | 11   11      73        223000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     208        132000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     101        506000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12        195000      1 |
+  | 11   11      74        250000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     132        227000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334        450000      1 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     334        190000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178        240000      1 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74         50000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     337        250000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101        286000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257        408400      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99         80000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      16        312500      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     337        200000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178         85000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12        180000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        281000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161        200000      1 |
+  | 11   11     195        201600      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178        163000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73        265000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11     178        300000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        140000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73        195000      1 |
+  | 11   11     101        525000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        300000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257        275000      1 |
+  | 11   11      88        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12        150000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      73        200000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73        500000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16        100000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178        165000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     272        187300      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257        500000      1 |
+  | 11   11      12        195000      1 |
+  | 11   11     161        525000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131        100000      1 |
+  | 11   11     195        349000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     334        550000      1 |
+  | 11   11      73        237000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      99        300000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     337        275000      1 |
+  | 11   11      88        180000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178        308000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        280000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12        301040      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        125000      1 |
+  | 11   11     178        176600      1 |
+  | 11   11      99        389000      1 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257        388000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     257        150000      1 |
+  | 11   11     178        272000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88        325000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        164000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      99        169500      1 |
+  | 11   11     208        200000      1 |
+  | 11   11     257        200000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      16        188340      1 |
+  | 11   11      88        250000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131        310000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     337        259000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        566000      1 |
+  | 11   11     257        100000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      99        500000      1 |
+  | 11   11     101        150000      1 |
+  | 11   11      16        400000      1 |
+  | 11   11     208        120000      1 |
+  | 11   11     257        250000      1 |
+  | 11   11     187        350000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12        150000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      99        490000      1 |
+  | 11   11      99        300000      1 |
+  | 11   11      73        250000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        300000      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88        155000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73        150000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99        224000      1 |
+  | 11   11     178         20000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88        230000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16         50000      1 |
+  | 11   11      99         50000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88        162000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      16        100000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161        275000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257        330000      1 |
+  | 11   11     257        200000      1 |
+  | 11   11     101        275000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     195        180000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88        186000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208        280000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      74        309800      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12        393040      1 |
+  | 11   11     257        455000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88        230000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     337        530000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208        160000      1 |
+  | 11   11     257        130000      1 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      74        300000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74        300000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208        180000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74        350000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74        300000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73        391000      1 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     257        300000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178        525800      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99        110000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        210000      1 |
+  | 11   11     178        281600      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16        269500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73        368500      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16        250000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101        700000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178        320000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     195        150000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      73        305000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88        200000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     101        129000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101        200000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257        160000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     195        150000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208        232320      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     208        150000      1 |
+  | 11   11      73        250000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88        325000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     178        418050      1 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11     334        550000      1 |
+  | 11   11     131        285000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208         90000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        270800      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257        100000      1 |
+  | 11   11     195        150000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     132        250000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     101        670000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     187        250000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        328000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101        150000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101        325000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        180000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        290000      1 |
+  | 11   11     101        200000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        152425      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12        200000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12        185000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208        328000      1 |
+  | 11   11     208        159600      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     132        308000      1 |
+  | 11   11      99        250000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12        228000      1 |
+  | 11   11     272        125000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161        200000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        410000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        255000      1 |
+  | 11   11     161        301000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12         75000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     337        175000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      99        200000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161        329500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        662500      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12        150000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208        360000      1 |
+  | 11   11      73        125000      1 |
+  | 11   11      88        130000      1 |
+  | 11   11     131        204000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     161        332900      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16         50000      1 |
+  | 11   11      99        324000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73        345000      1 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178         90000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        180000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178        304000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     334        500000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257        225000      1 |
+  | 11   11     257        370000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     132        308500      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     337        252000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12        210000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74        176000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131         60000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     132        130000      1 |
+  | 11   11     337        341800      1 |
+  | 11   11     187        800000      1 |
+  | 11   11     178         75000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        160000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        295000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178        105000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     131         97000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88        180000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88         91000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131        305000      1 |
+  | 11   11      16        351000      1 |
+  | 11   11      99        330000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73         88000      1 |
+  | 11   11     178        410000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101        150000      1 |
+  | 11   11      12        150000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73        299000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161        126000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      16         50000      1 |
+  | 11   11      16        282500      1 |
+  | 11   11      88         60000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131        180000      1 |
+  | 11   11      88        287000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73        150000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     101        120000      1 |
+  | 11   11     187       1150000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     132        550000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     101        350000      1 |
+  | 11   11     208        170000      1 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178        280000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161        128000      1 |
+  | 11   11      88        600000      1 |
+  | 11   11     272        197000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131        350000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        217000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     337        310000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        405000      1 |
+  | 11   11      99        300000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        227000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      12        184000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178        155250      1 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     208        500000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        400000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        200000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     272        229500      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73        180000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73        650000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334        385000      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178        107100      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16        150000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73        133000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     101        224000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131        225000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     101        395000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99        230000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131        105000      1 |
+  | 11   11      74        200000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74        250000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     337        230000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        193000      1 |
+  | 11   11     178        195300      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161        150000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        200000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      88        130000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      12        500000      1 |
+  | 11   11      99        120000      1 |
+  | 11   11     337        216000      1 |
+  | 11   11      99        250000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74        350000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     132        370000      1 |
+  | 11   11      88        150000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99        250000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        207000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257        295000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     337        344400      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     337        140000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257        300000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161        137000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99        299500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131        160300      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        250000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        147500      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99        828800      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88        160000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        260000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     131        516000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99        530000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88        175000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161        174000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131        262400      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     101        175000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101        358500      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99        201000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16        457000      1 |
+  | 11   11      74        230000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257        487500      1 |
+  | 11   11     208        177000      1 |
+  | 11   11     208        200000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88        250000      1 |
+  | 11   11      16        352500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12        418000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     101        100000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12        222300      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        294000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161        285600      1 |
+  | 11   11     101        380000      1 |
+  | 11   11      99        195000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74        200000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        150000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74         95000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99        350000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        135000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88         84000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131        210000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        250000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      16        332500      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178        225000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     272        165000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257        195000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73        130000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161         80000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     272        233400      1 |
+  | 11   11      88        200000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        325000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88        185000      1 |
+  | 11   11     131        105000      1 |
+  | 11   11      12        200000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99        646000      1 |
+  | 11   11     178        245000      1 |
+  | 11   11     208        142900      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178        225000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        150000      1 |
+  | 11   11     131         90000      1 |
+  | 11   11      88        250000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161        126500      1 |
+  | 11   11     208        137000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        197400      1 |
+  | 11   11      99        300000      1 |
+  | 11   11     131        140000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16        176000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88        186000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88         92000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     272         43700      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16        147400      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101        185000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257        180000      1 |
+  | 11   11     187        415200      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        130000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        250000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74        154500      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88        200000      1 |
+  | 11   11     334        225000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74        260000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        500000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     337        200000      1 |
+  | 11   11     208        156750      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     101        395000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     272        191000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257        290000      1 |
+  | 11   11      16        136100      1 |
+  | 11   11      12        428040      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88        250000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74        286000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        300000      1 |
+  | 11   11     334        416000      1 |
+  | 11   11      99        120000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334        180000      1 |
+  | 11   11     101        150000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178        220000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      16        200000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101        330000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178        164000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73        200000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     195        150000      1 |
+  | 11   11      73        400000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        375000      1 |
+  | 11   11      73        150000      1 |
+  | 11   11      88        264200      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     208        174000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     101        661000      1 |
+  | 11   11     257        195000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16        250000      1 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131        210000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131        350000      1 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      73        400000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178        182500      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     195         90000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208         35000      1 |
+  | 11   11     131        160000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257        297000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     161        150000      1 |
+  | 11   11      74        400000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        275000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     334        400000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        250000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334        166000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257        250000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178         95000      1 |
+  | 11   11     161        307500      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        205000      1 |
+  | 11   11     257        210000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        205000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257        461500      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      99        120000      1 |
+  | 11   11      73        408000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88        150000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      99        212500      1 |
+  | 11   11      74        150000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     334        434000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16        238000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101        210000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131        150000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131         60000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     195        260000      1 |
+  | 11   11      73        189000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      73        295000      1 |
+  | 11   11     208        164200      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101        335000      1 |
+  | 11   11     101        230000      1 |
+  | 11   11      12        434000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        334800      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257        180000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        135000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     334        127000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161        270000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161        240000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        418000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      94        400000      1 |
+  | 11   11     178        180000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     101        100000      1 |
+  | 11   11     178        235000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        120000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     131        300000      1 |
+  | 11   11     178        106000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      12        440000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257        180000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161        127250      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        600000      1 |
+  | 11   11     257        250000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        192500      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88        300000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        284800      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131        342000      1 |
+  | 11   11      73        235000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101        248000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99        500000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131        349000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     132        391000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        836000      1 |
+  | 11   11      99        150000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178        500000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        233640      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     195        300000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101        262500      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208        150000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178        200000      1 |
+  | 11   11      74        300000      1 |
+  | 11   11     272        240000      1 |
+  | 11   11     178        375000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88        417500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     131        494220      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73        100000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16        259940      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257        186000      1 |
+  | 11   11      88        350000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161        348000      1 |
+  | 11   11      99        293000      1 |
+  | 11   11     257         24500      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      12        179000      1 |
+  | 11   11      88        250000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334        280000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161        150000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74        284000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178        195100      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     334        800000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257        225000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131        326500      1 |
+  | 11   11     208        250000      1 |
+  | 11   11     334        150000      1 |
+  | 11   11      73        140000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12        200000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99         80000      1 |
+  | 11   11     178        458000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74        300000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        268000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        234800      1 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88        180000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74        220300      1 |
+  | 11   11     337        170000      1 |
+  | 11   11      16        180000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257        237500      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     132        217200      1 |
+  | 11   11      73        350000      1 |
+  | 11   11      88        170000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74        120000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74        476000      1 |
+  | 11   11     178        180000      1 |
+  | 11   11     208        147600      1 |
+  | 11   11     101        280000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        205000      1 |
+  | 11   11     208        169000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        347000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74        200000      1 |
+  | 11   11      74        300000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74        150000      1 |
+  | 11   11     132        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      74         30000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        157500      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        200000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     272        190300      1 |
+  | 11   11     101        120000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74        133000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74        290000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73        250000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208        180000      1 |
+  | 11   11      88        130000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        225000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     187        240000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     337        250000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     334        210000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161        111000      1 |
+  | 11   11      88        120000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131        250000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      16         91800      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161        133250      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99       1500000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     132        401000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74        275000      1 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208        353000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178        138000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88        265000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178        282800      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        330000      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      12        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     337        304400      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      88        422400      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74        475000      1 |
+  | 11   11      73        130000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11     131        510000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        350000      1 |
+  | 11   11     272        411300      1 |
+  | 11   11      12        175000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131         50000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257        120000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        297000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131        305000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     161        114500      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257        375700      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     334        250000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16        310350      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257        150000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99        120000      1 |
+  | 11   11     161        180000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73        286000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     187        255000      1 |
+  | 11   11     272        185200      1 |
+  | 11   11      73        340000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     337        318000      1 |
+  | 11   11     208        136200      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131        150000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208        395000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257        210000      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131        150000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161        675000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        374000      1 |
+  | 11   11      99         70000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     131         30000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        194000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131        350000      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     208        150000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     337        426000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     101        150000      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        301500      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     131        155200      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     195   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73        300000      1 |
+  | 11   11     178        175000      1 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      99        244000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     178        260000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     161         90000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131        294500      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131        200000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178        147000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161        250000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74        271500      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     101        230000      1 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      12        150000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        200000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99        125000      1 |
+  | 11   11      88        600000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16        176000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131        213300      1 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99        600000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12        176400      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     208        285000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74        200000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     161         90000      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      94   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        164000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178        150000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     195        180000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     101        374000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      99        350000      1 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     132   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     337   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     101        200000      1 |
+  | 11   11      88        325000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      74        150000      1 |
+  | 11   11     131        360000      1 |
+  | 11   11     195        500000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208        230000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      88        448000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99        240000      1 |
+  | 11   11      99        280000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     208        125000      1 |
+  | 11   11      74        350000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        150000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     187   niu (not in      0 |
+  | 11   11      99        272800      1 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     101        340000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     131        195900      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     195        240000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     334        120000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      12        150000      1 |
+  | 11   11     131        300000      1 |
+  | 11   11     161        128000      1 |
+  | 11   11      99        252500      1 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     101   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      16        181120      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      74        300000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      12        400400      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73         82500      1 |
+  | 11   11     334        350000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      16        280000      1 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131        503000      1 |
+  | 11   11      12        344000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     178        244500      1 |
+  | 11   11     272   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16        281000      1 |
+  | 11   11      12        209200      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      12   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99        350000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11      88        135000      1 |
+  | 11   11     178   niu (not in      0 |
+  | 11   11     161   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     208        330000      1 |
+  | 11   11     334        145000      1 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11     178        150000      1 |
+  | 11   11      99        500000      1 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      99   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11      88        350000      1 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131        215000      1 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      16   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     337         26000      1 |
+  | 11   11     334   niu (not in      0 |
+  | 11   11      88   niu (not in      0 |
+  | 11   11      73   niu (not in      0 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131   niu (not in      0 |
+  | 11   11      74   niu (not in      0 |
+  | 11   11     178         90000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11      99        550000      1 |
+  | 11   11     257   niu (not in      0 |
+  | 11   11     131        130000      1 |
+  | 11   11     208   niu (not in      0 |
+  | 11   11     208        325000      1 |
+  +--------------------------------------+
+
+. 
+. display _n "  【collapse 之后】同一个 (o,d) 只剩一行："
+
+  【collapse 之后】同一个 (o,d) 只剩一行：
+
+. gen double m_w    = perwt
+
+. gen double wx_w   = perwt*incwage if hasw
+(3,151 missing values generated)
+
+. gen double wg_w   = perwt if hasw
+(3,151 missing values generated)
+
+. gen double wg_all = perwt
+
+. collapse (sum) m_w wx_w wg_w wg_all, by(o d)
+
+. gen double wage_ok   = wx_w/wg_w
+
+. gen double wage_bad  = wx_w/wg_all
+
+. list o d m_w wx_w wg_w wg_all, noobs sep(0)
+
+  +------------------------------------------------+
+  |  o    d      m_w        wx_w     wg_w   wg_all |
+  |------------------------------------------------|
+  | 11   11   580274   3.725e+10   147517   580274 |
+  +------------------------------------------------+
+
+. 
+. display ""
+
+
+. display "  m_w    = " %8.0f m_w[1]    "   ← 加权人数 = 组内所有 perwt 相加"
+  m_w    =   580274   ← 加权人数 = 组内所有 perwt 相加
+
+. display "  wx_w   = " %10.0f wx_w[1]  "   ← 分子 = 有工资者的 (perwt × incwage) 相加"
+  wx_w   =  3.725e+10   ← 分子 = 有工资者的 (perwt × incwage) 相加
+
+. display "  wg_w   = " %8.0f wg_w[1]    "   ← 正确分母 = 只有工资者的 perwt 相加"
+  wg_w   =   147517   ← 正确分母 = 只有工资者的 perwt 相加
+
+. display "  wg_all = " %8.0f wg_all[1]  "   ← 错误分母（把没工资的人也加进来了）"
+  wg_all =   580274   ← 错误分母（把没工资的人也加进来了）
+
+. display ""
+
+
+. display "  正确  wage_od = wx_w/wg_w   = " %10.2f wage_ok[1]
+  正确  wage_od = wx_w/wg_w   =  252524.74
+
+. display "  错误  wage_od = wx_w/wg_all = " %10.2f wage_bad[1]
+  错误  wage_od = wx_w/wg_all =   64196.73
+
+. display ""
+
+
+. if wg_w[1] != wg_all[1] {
+.     display "  → 两者不一样！因为组内有人没有工资记录。"
+  → 两者不一样！因为组内有人没有工资记录。
+.     display "     如果分母用全部人，等于把「没工资」当成「工资 = 0」放进平均值，结果被拉低。"
+     如果分母用全部人，等于把「没工资」当成「工资 = 0」放进平均值，结果被拉低。
+. }
+
+. else {
+.     display "  → 这一组 4 人都有工资，所以两种写法一样。"
+.     display "     但只要组内有人没工资，错误写法就会把均值拉低 —— 这就是代码里那句 if hasw 的作用。"
+. }
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\demo_out.log
+  log type:  text
+ closed on:  26 Oct 2026, 09:26:37
+------------------------------------------------------------------------------------------------------------------------

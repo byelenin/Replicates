@@ -1,0 +1,343 @@
+
+  ___  ____  ____  ____  ____ ®
+ /__    /   ____/   /   ____/      StataNow 19.5
+___/   /   /___/   /   /___/       MP—Parallel Edition
+
+ Statistics and Data Science       Copyright 1985-2025 StataCorp LLC
+                                   StataCorp
+                                   4905 Lakeway Drive
+                                   College Station, Texas 77845 USA
+                                   800-782-8272        https://www.stata.com
+                                   979-696-4600        service@stata.com
+
+Stata license: Unlimited-user 2-core network, expiring  8 Apr 2027
+Serial number: 501909302397
+  Licensed to: NJUsxy
+               NJU
+
+Notes:
+      1. Stata is running in batch mode.
+      2. Unicode is supported; see help unicode_advice.
+      3. More than 2 billion observations are allowed; see help obs_advice.
+      4. Maximum number of variables is set to 5,000 but can be increased;
+          see help set_maxvar.
+
+. do C:\Users\任娜\Documents\deepseek-harness\default-workspace\fe_howto.do 
+
+. * ============================================================
+. * 固定效应怎么算 —— 完整演示（修正版）
+. * ============================================================
+. clear all
+
+. set more off
+
+. set seed 20191029
+
+. 
+. set obs 360
+Number of observations (_N) was 0, now 360.
+
+. gen byte o = ceil(_n/120)
+
+. gen byte d = 1 + floor(mod(_n-1,120)/30)      // ← 修正：d 从 1 开始
+
+. 
+. gen double w_true = .
+(360 missing values generated)
+
+. replace w_true = 1.00 if d == 1
+(90 real changes made)
+
+. replace w_true = 1.50 if d == 2
+(90 real changes made)
+
+. replace w_true = 0.80 if d == 3
+(90 real changes made)
+
+. replace w_true = 1.20 if d == 4
+(90 real changes made)
+
+. 
+. gen double q_true = .
+(360 missing values generated)
+
+. replace q_true = 1.00 if o == 1
+(120 real changes made)
+
+. replace q_true = 0.60 if o == 2
+(120 real changes made)
+
+. replace q_true = 1.40 if o == 3
+(120 real changes made)
+
+. 
+. gen double pi = 0.05 + 0.10*runiform()
+
+. replace pi = pi + 0.02 if d == 2
+(90 real changes made)
+
+. replace pi = pi - 0.01 if o == 3
+(120 real changes made)
+
+. 
+. local Gbar  = 0.9
+
+. local theta = 5
+
+. local lnG   = ln(`Gbar')
+
+. 
+. gen double ln_pi   = ln(pi)                   // ← 先算好变量，reghdfe 不认 l
+> n(pi)
+
+. gen double ln_wage = `lnG' + ln(w_true) - (1/`theta')*ln_pi + ///
+>                      ln(q_true) + 0.15*rnormal()
+
+. 
+. display _n(2) "{hline 76}"
+
+
+----------------------------------------------------------------------------
+
+. display "真值：θ=5（系数 -0.2）；w_d = 1.00 / 1.50 / 0.80 / 1.20；q_o = 1.00 
+> / 0.60 / 1.40"
+真值：θ=5（系数 -0.2）；w_d = 1.00 / 1.50 / 0.80 / 1.20；q_o = 1.00 / 0.60 / 1.
+> 40
+
+. display "{hline 76}"
+----------------------------------------------------------------------------
+
+. 
+. * ============================================================
+. * 方法一：虚拟变量
+. * ============================================================
+. display _n(2) "{hline 76}"
+
+
+----------------------------------------------------------------------------
+
+. display "方法一：regress ln_wage ln_pi i.o i.d"
+方法一：regress ln_wage ln_pi i.o i.d
+
+. display "{hline 76}"
+----------------------------------------------------------------------------
+
+. quietly regress ln_wage ln_pi i.o i.d
+
+. 
+. display _n "  系数           估出来      真实值      差"
+
+  系数           估出来      真实值      差
+
+. display "  {hline 50}"
+  --------------------------------------------------
+
+. display "  ln(π)        " %9.4f _b[ln_pi] "   " %9.4f -1/`theta' "   " %9.4f 
+> _b[ln_pi]+1/`theta'
+  ln(π)          -0.1984     -0.2000      0.0016
+
+. display "  2.d          " %9.4f _b[2.d]   "   " %9.4f ln(1.50) "   " %9.4f _b
+> [2.d]-ln(1.50)
+  2.d             0.4571      0.4055      0.0516
+
+. display "  3.d          " %9.4f _b[3.d]   "   " %9.4f ln(0.80) "   " %9.4f _b
+> [3.d]-ln(0.80)
+  3.d            -0.1853     -0.2231      0.0379
+
+. display "  4.d          " %9.4f _b[4.d]   "   " %9.4f ln(1.20) "   " %9.4f _b
+> [4.d]-ln(1.20)
+  4.d             0.2183      0.1823      0.0360
+
+. display "  2.o          " %9.4f _b[2.o]   "   " %9.4f ln(0.60) "   " %9.4f _b
+> [2.o]-ln(0.60)
+  2.o            -0.5113     -0.5108     -0.0005
+
+. display "  3.o          " %9.4f _b[3.o]   "   " %9.4f ln(1.40) "   " %9.4f _b
+> [3.o]-ln(1.40)
+  3.o             0.3325      0.3365     -0.0040
+
+. display "  常数项       " %9.4f _b[_cons] "   " %9.4f `lnG' "   " %9.4f _b[_c
+> ons]-`lnG'
+  常数项         -0.1283     -0.1054     -0.0230
+
+. 
+. * ============================================================
+. * 方法三：还原绝对水平（归一化 q_1 = 1）
+. * ============================================================
+. display _n(2) "{hline 76}"
+
+
+----------------------------------------------------------------------------
+
+. display "方法三：用归一化 q_1 = 1 还原 w_d 和 q_o 的绝对水平"
+方法三：用归一化 q_1 = 1 还原 w_d 和 q_o 的绝对水平
+
+. display "{hline 76}"
+----------------------------------------------------------------------------
+
+. 
+. quietly regress ln_wage ln_pi i.o i.d
+
+. local c    = _b[_cons]
+
+. local lnw1 = `c' - `lnG'
+
+. 
+. display _n "  d     ln(w_d)      w_d 还原     真实 w_d     误差"
+
+  d     ln(w_d)      w_d 还原     真实 w_d     误差
+
+. display "  {hline 54}"
+  ------------------------------------------------------
+
+. display "  1   " %10.4f `lnw1' "    " %8.4f exp(`lnw1') "     " %7.4f 1.00 " 
+>    " %7.4f exp(`lnw1')-1.00
+  1      -0.0230      0.9773      1.0000    -0.0227
+
+. forvalues i = 2/4 {
+  2.     local lnwi = `lnw1' + _b[`i'.d]
+  3.     quietly summarize w_true if d == `i'
+  4.     display "  `i'   " %10.4f `lnwi' "    " %8.4f exp(`lnwi') "     " %7.4
+> f r(mean) "    " %7.4f exp(`lnwi')-r(mean)
+  5. }
+  2       0.4341      1.5436      1.5000     0.0436
+  3      -0.2082      0.8120      0.8000     0.0120
+  4       0.1953      1.2157      1.2000     0.0157
+
+. 
+. display _n "  o     ln(q_o)      q_o 还原     真实 q_o     误差"
+
+  o     ln(q_o)      q_o 还原     真实 q_o     误差
+
+. display "  {hline 54}"
+  ------------------------------------------------------
+
+. display "  1   " %10.4f 0 "    " %8.4f 1 "     " %7.4f 1.00 "    " %7.4f 0
+  1       0.0000      1.0000      1.0000     0.0000
+
+. forvalues i = 2/3 {
+  2.     local lnqi = _b[`i'.o]
+  3.     quietly summarize q_true if o == `i'
+  4.     display "  `i'   " %10.4f `lnqi' "    " %8.4f exp(`lnqi') "     " %7.4
+> f r(mean) "    " %7.4f exp(`lnqi')-r(mean)
+  5. }
+  2      -0.5113      0.5997      0.6000    -0.0003
+  3       0.3325      1.3944      1.4000    -0.0056
+
+. 
+. * ============================================================
+. * 方法二：reghdfe + savefe + predict
+. * ============================================================
+. display _n(2) "{hline 76}"
+
+
+----------------------------------------------------------------------------
+
+. display "方法二：reghdfe ..., absorb(d o, savefe) 然后 predict"
+方法二：reghdfe ..., absorb(d o, savefe) 然后 predict
+
+. display "{hline 76}"
+----------------------------------------------------------------------------
+
+. 
+. quietly reghdfe ln_wage ln_pi, absorb(d o, savefe)
+
+. display "  reghdfe 的 ln(π) 系数 = " %9.4f _b[ln_pi] "   （真实 -0.2000）"
+  reghdfe 的 ln(π) 系数 =   -0.1984   （真实 -0.2000）
+
+. display "  观测数 N = " e(N)
+  观测数 N = 360
+
+. 
+. display _n "  savefe 造出来的变量："
+
+  savefe 造出来的变量：
+
+. capture describe __hdfe*, short
+
+. if _rc == 0 {
+.     display "  （存在）"
+  （存在）
+. }
+
+. 
+. display _n "  试各种 predict 写法："
+
+  试各种 predict 写法：
+
+. foreach opt in "d" "xbd" "xb" "residuals" {
+  2.     capture drop _ft
+  3.     capture predict double _ft, `opt'
+  4.     display "    predict ..., " %-10s "`opt'" "  → rc = " _rc
+  5. }
+    predict ..., d           → rc = 9
+    predict ..., xbd         → rc = 9
+    predict ..., xb          → rc = 0
+    predict ..., residuals   → rc = 9
+
+. capture drop _ft
+
+. 
+. display _n "  取出固定效应的推荐写法（reghdfe 官方）："
+
+  取出固定效应的推荐写法（reghdfe 官方）：
+
+. capture predict double fe_d, d
+
+. if _rc == 0 {
+.     display "    predict fe_d, d 成功"
+.     forvalues i = 1/4 {
+  2.         quietly summarize fe_d if d == `i'
+  3.         display "      d=`i'   fe_d = " %9.4f r(mean)
+  4.     }
+. }
+
+. else {
+.     display "    predict fe_d, d 返回 rc = " _rc
+    predict fe_d, d 返回 rc = 9
+.     display "    → 改用 savefe 生成的 __hdfe1__ / __hdfe2__ 变量"
+    → 改用 savefe 生成的 __hdfe1__ / __hdfe2__ 变量
+.     capture confirm variable __hdfe1__
+.     if _rc == 0 {
+.         display "    __hdfe1__（对应 absorb 里第一个变量 d）分城市均值："
+    __hdfe1__（对应 absorb 里第一个变量 d）分城市均值：
+.         forvalues i = 1/4 {
+  2.             quietly summarize __hdfe1__ if d == `i'
+  3.             display "      d=`i'   __hdfe1__ = " %9.4f r(mean)
+  4.         }
+      d=1   __hdfe1__ =   -0.1225
+      d=2   __hdfe1__ =    0.3346
+      d=3   __hdfe1__ =   -0.3078
+      d=4   __hdfe1__ =    0.0958
+.     }
+.     capture confirm variable __hdfe2__
+.     if _rc == 0 {
+.         display "    __hdfe2__（对应 o）分出发地均值："
+    __hdfe2__（对应 o）分出发地均值：
+.         forvalues i = 1/3 {
+  2.             quietly summarize __hdfe2__ if o == `i'
+  3.             display "      o=`i'   __hdfe2__ = " %9.4f r(mean)
+  4.         }
+      o=1   __hdfe2__ =    0.0596
+      o=2   __hdfe2__ =   -0.4517
+      o=3   __hdfe2__ =    0.3921
+.     }
+. }
+
+. 
+. display _n(2) "{hline 76}"
+
+
+----------------------------------------------------------------------------
+
+. display "结论：固定效应 = 虚拟变量的系数。相对差异两条路都能拿到，"
+结论：固定效应 = 虚拟变量的系数。相对差异两条路都能拿到，
+
+. display "      绝对水平靠 q_1 = 1 这个归一化定出来。"
+      绝对水平靠 q_1 = 1 这个归一化定出来。
+
+. display "{hline 76}"
+----------------------------------------------------------------------------
+
+. 
+end of do-file

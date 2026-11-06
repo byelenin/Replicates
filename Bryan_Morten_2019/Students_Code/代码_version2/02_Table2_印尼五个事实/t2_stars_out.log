@@ -1,0 +1,135 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t2_stars_out.log
+  log type:  text
+ opened on:  24 Oct 2026, 22:19:20
+
+. 
+. local root "D:\研一上\微观计量"
+
+. 
+. capture program drop _both
+
+. program define _both
+  1.     args dep rhs wt useif vn lab cl
+  2.     local wo ""
+  3.     if "`wt'" != "NONE" local wo "[aw=`wt']"
+  4.     local uf ""
+  5.     if "`useif'" != "ALL" local uf "`useif'"
+  6.     capture quietly reghdfe `dep' `rhs' `wo' `uf', absorb(o d) vce(cluster `cl')
+  7.     local b = _b[`vn']
+  8.     local s = _se[`vn']
+  9.     local flag ""
+ 10.     if missing(`s') | `s' <= 0 {
+ 11.         capture quietly reghdfe `dep' `rhs' `wo' `uf', absorb(o d) vce(cluster o)
+ 12.         local s = _se[`vn']
+ 13.         local flag "   [VCV非正定 → 改 cluster(o)]"
+ 14.     }
+ 15.     local t = `b'/`s'
+ 16.     local st ""
+ 17.     if abs(`t') > 2.576      local st "***"
+ 18.     else if abs(`t') > 1.96  local st "**"
+ 19.     else if abs(`t') > 1.645 local st "*"
+ 20.     display "   `lab'   b = " %10.4f `b' "   SE = " %9.4f `s' "   t = " %8.2f `t' "  `st'`flag'"
+ 21. end
+
+. 
+. display _n(2) "{hline 92}"
+
+
+--------------------------------------------------------------------------------------------
+
+. display "  Table 2（印尼 1995）三个口径的系数与标准误"
+  Table 2（印尼 1995）三个口径的系数与标准误
+
+. display "{hline 92}"
+--------------------------------------------------------------------------------------------
+
+. 
+. use "`root'\复现\idn_od_panel_regency.dta", clear
+
+. keep if !missing(ln_dist)
+(264 observations deleted)
+
+. 
+. display _n "  ===== 口径 A：主结果（全部人，不加权，cluster(o d)）====="
+
+  ===== 口径 A：主结果（全部人，不加权，cluster(o d)）=====
+
+. _both ln_p    "ln_dist"      "NONE" "ALL"                  ln_dist "    (1) ln_dist → ln p" "o d"
+       (1) ln_dist → ln p   b =    -0.6939   SE =    0.0242   t =   -28.70  ***
+
+. _both ln_wage "ln_dist"      "NONE" "if !missing(ln_wage)" ln_dist "    (2) ln_dist → ln w" "o d"
+       (2) ln_dist → ln w   b =     0.0126   SE =    0.0085   t =     1.49  
+
+. _both ln_wage "ln_p"         "NONE" "if !missing(ln_wage)" ln_p    "    (3) ln_p    → ln w" "o d"
+       (3) ln_p    → ln w   b =    -0.0247   SE =    0.0066   t =    -3.75  ***
+
+. _both ln_wage "ln_dist ln_p" "NONE" "if !missing(ln_wage)" ln_p    "    (4a) ln_p   → ln w" "o d"
+       (4a) ln_p   → ln w   b =    -0.0311   SE =    0.0088   t =    -3.53  ***
+
+. _both ln_wage "ln_dist ln_p" "NONE" "if !missing(ln_wage)" ln_dist "    (4b) ln_dist→ ln w" "o d"
+       (4b) ln_dist→ ln w   b =    -0.0126   SE =    0.0110   t =    -1.15  
+
+. 
+. display _n "  ===== 口径 B：加权（男性户主 15-65，[aw=人数]，cluster(o)）====="
+
+  ===== 口径 B：加权（男性户主 15-65，[aw=人数]，cluster(o)）=====
+
+. _both ln_p_mh    "ln_dist"      "n_mh"      "ALL"                  ln_dist "    (1) ln_dist → ln p" "o"
+       (1) ln_dist → ln p   b =    -0.7136   SE =    0.0309   t =   -23.07  ***
+
+. _both ln_wage_mh "ln_dist"      "n_wage_mh" "if !missing(ln_wage_mh)" ln_dist "    (2) ln_dist → ln w" "o"
+       (2) ln_dist → ln w   b =     0.0302   SE =    0.0084   t =     3.61  ***
+
+. _both ln_wage_mh "ln_p_mh"      "n_wage_mh" "if !missing(ln_wage_mh)" ln_p    "    (3) ln_p    → ln w" "o"
+       (3) ln_p    → ln w   b =    -0.0173   SE =    0.0077   t =    -2.25  **
+
+. _both ln_wage_mh "ln_dist ln_p_mh" "n_wage_mh" "if !missing(ln_wage_mh)" ln_p    "    (4a) ln_p   → ln w" "o"
+       (4a) ln_p   → ln w   b =     0.0015   SE =    0.0095   t =     0.16  
+
+. _both ln_wage_mh "ln_dist ln_p_mh" "n_wage_mh" "if !missing(ln_wage_mh)" ln_dist "    (4b) ln_dist→ ln w" "o"
+       (4b) ln_dist→ ln w   b =     0.0313   SE =    0.0105   t =     2.98  ***
+
+. 
+. display _n "  ===== 口径 C：剔极端值（wage_od <= 100 万，cluster(o d)）====="
+
+  ===== 口径 C：剔极端值（wage_od <= 100 万，cluster(o d)）=====
+
+. capture drop okw
+
+. gen byte okw = missing(wage_od) | wage_od <= 1000000
+
+. _both ln_p    "ln_dist"      "NONE" "if okw"                  ln_dist "    (1) ln_dist → ln p" "o d"
+       (1) ln_dist → ln p   b =    -0.6946   SE =    0.0161   t =   -43.21  ***   [VCV非正定 → 改 cluster(o)]
+
+. _both ln_wage "ln_dist"      "NONE" "if okw & !missing(ln_wage)" ln_dist "    (2) ln_dist → ln w" "o d"
+       (2) ln_dist → ln w   b =     0.0023   SE =    0.0077   t =     0.30     [VCV非正定 → 改 cluster(o)]
+
+. _both ln_wage "ln_p"         "NONE" "if okw & !missing(ln_wage)" ln_p    "    (3) ln_p    → ln w" "o d"
+       (3) ln_p    → ln w   b =    -0.0161   SE =    0.0052   t =    -3.07  ***   [VCV非正定 → 改 cluster(o)]
+
+. _both ln_wage "ln_dist ln_p" "NONE" "if okw & !missing(ln_wage)" ln_p    "    (4a) ln_p   → ln w" "o d"
+       (4a) ln_p   → ln w   b =    -0.0253   SE =    0.0072   t =    -3.49  ***
+
+. _both ln_wage "ln_dist ln_p" "NONE" "if okw & !missing(ln_wage)" ln_dist "    (4b) ln_dist→ ln w" "o d"
+       (4b) ln_dist→ ln w   b =    -0.0183   SE =    0.0105   t =    -1.75  *
+
+. 
+. display _n(2) "{hline 92}"
+
+
+--------------------------------------------------------------------------------------------
+
+. display "  结束：$S_DATE $S_TIME"
+  结束：24 Oct 2026 22:19:24
+
+. display "{hline 92}"
+--------------------------------------------------------------------------------------------
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t2_stars_out.log
+  log type:  text
+ closed on:  24 Oct 2026, 22:19:24
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

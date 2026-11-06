@@ -1,0 +1,70 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\macrote_out.log
+  log type:  text
+ opened on:  19 Oct 2026, 17:21:13
+
+. 
+. * ---- 这才是「赋值」：把 0.78169712 存进名为 med 的小盒子 ----
+. local med = 0.78169712
+
+. 
+. display _n "==== A：反引号+单引号，放在引号外面 ===="
+
+==== A：反引号+单引号，放在引号外面 ====
+
+. display "值 = " `med'
+值 = .78169712
+
+. 
+. display _n "==== B：反引号+单引号，放在引号里面 ===="
+
+==== B：反引号+单引号，放在引号里面 ====
+
+. display "值 = `med'"
+值 = .78169712
+
+. 
+. display _n "==== C：没有反引号（错）===="
+
+==== C：没有反引号（错）====
+
+. display "值 = med"
+值 = med
+
+. 
+. display _n "==== D：你粘的样子（只有单引号，没反引号）===="
+
+==== D：你粘的样子（只有单引号，没反引号）====
+
+. capture noisily display "值 = " med'
+值 = med' invalid name
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 198
+
+. 
+. display _n "==== E：宏可以直接当数字参与运算 ===="
+
+==== E：宏可以直接当数字参与运算 ====
+
+. display 1 + `med'
+1.7816971
+
+. 
+. display _n "==== F：宏用在 if 条件里 ===="
+
+==== F：宏用在 if 条件里 ====
+
+. display (`med' > 0.5)
+1
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\macrote_out.log
+  log type:  text
+ closed on:  19 Oct 2026, 17:21:13
+-------------------------------------------------------------------------------

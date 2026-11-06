@@ -1,0 +1,129 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\alpha_d_probe_out.log
+  log type:  text
+ opened on:  24 Oct 2026, 17:30:41
+
+. 
+. local root "D:\研一上\微观计量\复现"
+
+. 
+. foreach f in idn_od_panel idn_od_panel_malehead idn_od_panel_regency {
+  2.     display _n(2) "{hline 78}"
+  3.     display "  文件：`f'.dta"
+  4.     display "{hline 78}"
+  5.     capture confirm file "`root'\\`f'.dta"
+  6.     if _rc {
+  7.         display "  ❌ 不存在"
+  8.         continue
+  9.     }
+ 10.     use "`root'\\`f'.dta", clear
+ 11.     display "  观测数 = " _N
+ 12.     display _n "  变量："
+ 13.     describe, short
+ 14.     display _n "  关键变量是否存在："
+ 15.     foreach v in o d ln_p ln_p_rev ln_poo ln_pdd ln_pdnoto ln_wage wage_od dist_km {
+ 16.         capture confirm variable `v'
+ 17.         if _rc {
+ 18.             display "    `v'  ❌"
+ 19.         }
+ 20.         else {
+ 21.             quietly summarize `v'
+ 22.             display "    `v'  ✅   非缺失 = " %6.0f r(N) "   均值 = " %12.5f r(mean)
+ 23.         }
+ 24.     }
+ 25. }
+
+
+------------------------------------------------------------------------------
+  文件：idn_od_panel.dta
+------------------------------------------------------------------------------
+  观测数 = 328
+
+  变量：
+
+Contains data from D:\研一上\微观计量\复现\idn_od_panel.dta
+ Observations:           328                  
+    Variables:            12                  17 Oct 2026 15:58
+Sorted by: year  o  d
+
+  关键变量是否存在：
+    o  ✅   非缺失 =    328   均值 =     40.09146
+    d  ✅   非缺失 =    328   均值 =     27.11585
+    ln_p  ✅   非缺失 =    328   均值 =     -5.04281
+    ln_p_rev  ❌
+    ln_poo  ❌
+    ln_pdd  ❌
+    ln_pdnoto  ❌
+    ln_wage  ✅   非缺失 =    328   均值 =     12.45412
+    wage_od  ✅   非缺失 =    328   均值 = 284367.23560
+    dist_km  ❌
+
+
+------------------------------------------------------------------------------
+  文件：idn_od_panel_malehead.dta
+------------------------------------------------------------------------------
+  观测数 = 307
+
+  变量：
+
+Contains data from D:\研一上\微观计量\复现\idn_od_panel_malehead.dta
+ Observations:           307                  
+    Variables:            12                  17 Oct 2026 19:58
+Sorted by: o
+
+  关键变量是否存在：
+    o  ✅   非缺失 =    307   均值 =     39.57003
+    d  ✅   非缺失 =    307   均值 =     26.99674
+    ln_p  ✅   非缺失 =    307   均值 =     -4.66979
+    ln_p_rev  ❌
+    ln_poo  ❌
+    ln_pdd  ❌
+    ln_pdnoto  ❌
+    ln_wage  ✅   非缺失 =    307   均值 =     12.60605
+    wage_od  ✅   非缺失 =    307   均值 = 330239.01666
+    dist_km  ❌
+
+
+------------------------------------------------------------------------------
+  文件：idn_od_panel_regency.dta
+------------------------------------------------------------------------------
+  观测数 = 12891
+
+  变量：
+
+Contains data from D:\研一上\微观计量\复现\idn_od_panel_regency.dta
+ Observations:        12,891                  
+    Variables:            16                  22 Oct 2026 11:42
+Sorted by: o  d
+
+  关键变量是否存在：
+    o  ✅   非缺失 =  12891   均值 =  28773.65658
+    d  ✅   非缺失 =  12891   均值 =  26483.23862
+    ln_p  ✅   非缺失 =  12891   均值 =     -6.98577
+    ln_p_rev  ❌
+    ln_poo  ❌
+    ln_pdd  ❌
+    ln_pdnoto  ❌
+    ln_wage  ✅   非缺失 =   7709   均值 =     12.23584
+    wage_od  ✅   非缺失 =   7709   均值 = 252691.42526
+    dist_km  ✅   非缺失 =  12891   均值 =    575.56396
+
+. 
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  完成"
+  完成
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\alpha_d_probe_out.log
+  log type:  text
+ closed on:  24 Oct 2026, 17:30:43
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

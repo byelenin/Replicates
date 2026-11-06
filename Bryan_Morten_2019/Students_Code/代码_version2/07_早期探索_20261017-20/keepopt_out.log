@@ -1,0 +1,118 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\keepopt_out.log
+  log type:  text
+ opened on:  20 Oct 2026, 20:58:04
+
+. 
+. * master: 5 行（1101 x2, 1102, 1105, 9999主数据独有）
+. clear
+
+. input long bcode byte urban
+
+            bcode     urban
+  1. 1101 1
+  2. 1101 2
+  3. 1102 1
+  4. 1105 2
+  5. 9999 1
+  6. end
+
+. tempfile master
+
+. save `master'
+file C:\Users\任娜\AppData\Local\Temp\dsh-esAdBR\ST_7fc8_000001.tmp saved as
+    .dta format
+
+. 
+. * using: 4 行（1101, 1102, 1105 匹配；8888 只在 using 里）
+. clear
+
+. input long bcode byte o_rural
+
+            bcode   o_rural
+  1. 1101 0
+  2. 1102 1
+  3. 1105 0
+  4. 8888 1
+  5. end
+
+. tempfile look
+
+. save `look'
+file C:\Users\任娜\AppData\Local\Temp\dsh-esAdBR\ST_7fc8_000002.tmp saved as
+    .dta format
+
+. 
+. display _n "==== 不加 keep：基准 ===="
+
+==== 不加 keep：基准 ====
+
+. use `master', clear
+
+. quietly merge m:1 bcode using `look'
+
+. quietly count
+
+. display "总行数 = " r(N)
+总行数 = 6
+
+. tab _merge
+
+   Matching result from |
+                  merge |      Freq.     Percent        Cum.
+------------------------+-----------------------------------
+        Master only (1) |          1       16.67       16.67
+         Using only (2) |          1       16.67       33.33
+            Matched (3) |          4       66.67      100.00
+------------------------+-----------------------------------
+                  Total |          6      100.00
+
+. 
+. foreach opt in "master match" "match" "match using" "using match" {
+  2.     display _n "==== keep(`opt') ===="
+  3.     use `master', clear
+  4.     quietly merge m:1 bcode using `look', keep(`opt')
+  5.     quietly count
+  6.     display "保留行数 = " r(N)
+  7.     quietly tab _merge
+  8.     display "各 _merge 取值人数："
+  9.     quietly levelsof _merge, local(lv)
+ 10.     foreach m of local lv {
+ 11.         quietly count if _merge == `m'
+ 12.         display "   _merge==`m' : " r(N)
+ 13.     }
+ 14. }
+
+==== keep(master match) ====
+保留行数 = 5
+各 _merge 取值人数：
+   _merge==1 : 1
+   _merge==3 : 4
+
+==== keep(match) ====
+保留行数 = 4
+各 _merge 取值人数：
+   _merge==3 : 4
+
+==== keep(match using) ====
+保留行数 = 5
+各 _merge 取值人数：
+   _merge==2 : 1
+   _merge==3 : 4
+
+==== keep(using match) ====
+保留行数 = 5
+各 _merge 取值人数：
+   _merge==2 : 1
+   _merge==3 : 4
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\keepopt_out.log
+  log type:  text
+ closed on:  20 Oct 2026, 20:58:04
+-------------------------------------------------------------------------------

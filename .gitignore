@@ -1,0 +1,33 @@
+# Agent / Claude local guidance (do not commit)
+CLAUDE.md
+AGENTS.md
+AGENT.md
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Replication datasets live on Google Drive:
+#   My Drive/ReplicatesData/<PaperName>/...
+# Ignore everything under data folders, then re-include directories + README pointers.
+**/Data/**
+**/data/**
+**/数据/**
+**/数据_version2/**
+
+!**/Data/
+!**/Data/**/
+!**/Data/README.md
+!**/Data/**/README.md
+!**/data/
+!**/data/**/
+!**/data/README.md
+!**/data/**/README.md
+!**/数据/
+!**/数据/**/
+!**/数据/README.md
+!**/数据/**/README.md
+!**/数据_version2/
+!**/数据_version2/**/
+!**/数据_version2/README.md
+!**/数据_version2/**/README.md

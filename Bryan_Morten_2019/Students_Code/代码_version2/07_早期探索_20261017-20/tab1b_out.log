@@ -1,0 +1,289 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\tab1b_out.log
+  log type:  text
+ opened on:  19 Oct 2026, 10:01:19
+
+. 
+. use year geo2_id1995 id1995a_bplreg urban perwt ///
+>     using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. count
+  718,837
+
+. 
+. * ---- 关键：去掉出生县码的值标签，否则 merge 会因为标签不一致而 0 匹配 ----
+. label values id1995a_bplreg .
+
+. label values geo2_id1995 .
+
+. 
+. * ---- 1. 出生县码（原始格式 prov*100+reg），本身就是我们要的 key ----
+. gen long bcode = id1995a_bplreg
+
+. 
+. * ---- 2. 迁移标记 ----
+. gen double geo_key = floor(geo2_id1995/1000)*100 + mod(geo2_id1995,100)
+
+. gen byte moved = (geo_key != bcode) if !missing(id1995a_bplreg)
+
+. label var moved "现居县 != 出生县"
+
+. 
+. display ""
+
+
+. display "==== 迁移率（全体，加权，用于交叉核对）===="
+==== 迁移率（全体，加权，用于交叉核对）====
+
+. tab moved [aw = perwt]
+
+     现居县 |
+         != |
+     出生县 |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 | 600,888.01       83.59       83.59
+          1 | 117,948.99       16.41      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+. 
+. * ---- 3. 每个「现居县」的农村人口占比 -> 定农村县/城市县 ----
+. display ""
+
+
+. display "==== 县的农村人口占比 ===="
+==== 县的农村人口占比 ====
+
+. bysort geo2_id1995: egen double tot_pop = total(perwt)
+
+. bysort geo2_id1995: egen double rur_pop = total((urban==1)*perwt)
+
+. gen double rshare = rur_pop/tot_pop
+
+. summarize rshare, detail
+
+                           rshare
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            0              0       Obs             718,837
+25%     .1794038              0       Sum of wgt.     718,837
+
+50%     .7578686                      Mean           .5825114
+                        Largest       Std. dev.      .3610912
+75%     .8838007              1
+90%      .933719              1       Variance       .1303868
+95%     .9595717              1       Skewness        -.64722
+99%            1              1       Kurtosis       1.767732
+
+. local med = r(p50)
+
+. display "农村占比中位数 = " `med'
+农村占比中位数 = .75786864
+
+. 
+. gen byte reg_rural = (rshare > `med')
+
+. 
+. * ---- 4. 做成查找表（key 用「出生县码」格式）----
+. preserve
+
+.     keep geo2_id1995 reg_rural rshare
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(718,616 observations deleted)
+
+.     gen long bcode = floor(geo2_id1995/1000)*100 + mod(geo2_id1995,100)
+
+.     keep bcode reg_rural
+
+.     rename reg_rural o_rural
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+
+.     count
+  221
+
+.     list bcode o_rural in 1/6, noobs
+
+  +-----------------+
+  | bcode   o_rural |
+  |-----------------|
+  |  1101         1 |
+  |  1102         1 |
+  |  1103         1 |
+  |  1104         1 |
+  |  1105         1 |
+  |-----------------|
+  |  1106         1 |
+  +-----------------+
+
+.     save "tab1_lookup.dta", replace
+(file tab1_lookup.dta not found)
+file tab1_lookup.dta saved
+
+. restore
+
+. 
+. * ---- 5. 诊断：查找表本身有没有内容 ----
+. display ""
+
+
+. display "==== 诊断：查找表 ===="
+==== 诊断：查找表 ====
+
+. preserve
+
+.     use "tab1_lookup.dta", clear
+
+.     count
+  221
+
+.     summarize bcode
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       bcode |        221    3071.674    1381.257       1101       5413
+
+.     list in 1/6, noobs
+
+  +-----------------+
+  | o_rural   bcode |
+  |-----------------|
+  |       1    1101 |
+  |       1    1102 |
+  |       1    1103 |
+  |       1    1104 |
+  |       1    1105 |
+  |-----------------|
+  |       1    1106 |
+  +-----------------+
+
+. restore
+
+. 
+. * ---- 6. 合并出生地类别 ----
+. display ""
+
+
+. display "==== 合并 ===="
+==== 合并 ====
+
+. merge m:1 bcode using "tab1_lookup.dta", keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                         4,531
+        from master                     4,531  
+        from using                          0  
+
+    Matched                           714,306  
+    -----------------------------------------
+
+. tab o_rural, missing
+
+    o_rural |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    329,552       45.85       45.85
+          1 |    384,754       53.52       99.37
+          . |      4,531        0.63      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+. 
+. * ---- 7. 现居地类别（用个人的 urban）----
+. gen byte d_rural = (urban == 1)
+
+. label var d_rural "现居地是农村(=1)"
+
+. 
+. * ---- 8. 迁移率（按出生地城乡）----
+. display ""
+
+
+. display "==== 【论文 Table 1】Migration rate 行 ===="
+==== 【论文 Table 1】Migration rate 行 ====
+
+. tab o_rural moved [aw = perwt], row
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |       现居县 !=
+           |        出生县
+   o_rural |         0          1 |     Total
+-----------+----------------------+----------
+         0 |   269,165   59,209.3 | 328,374.3 
+           |     81.97      18.03 |    100.00 
+-----------+----------------------+----------
+         1 | 330,835.7  55,095.99 | 385,931.7 
+           |     85.72      14.28 |    100.00 
+-----------+----------------------+----------
+     Total | 600,000.7  114,305.3 |   714,306 
+           |     84.00      16.00 |    100.00 
+
+. 
+. * ---- 9. 同类内迁移 ----
+. display ""
+
+
+. display "==== 【论文 Table 1】Moves within category 行 ===="
+==== 【论文 Table 1】Moves within category 行 ====
+
+. tab o_rural d_rural if moved == 1 [aw = perwt], row
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |    现居地是农村(=1
+           |           )
+   o_rural |         0          1 |     Total
+-----------+----------------------+----------
+         0 | 47,121.29  18,874.09 | 65,995.37 
+           |     71.40      28.60 |    100.00 
+-----------+----------------------+----------
+         1 | 37,231.85  24,178.77 | 61,410.63 
+           |     60.63      39.37 |    100.00 
+-----------+----------------------+----------
+     Total | 84,353.14  43,052.86 |   127,406 
+           |     66.21      33.79 |    100.00 
+
+. 
+. display ""
+
+
+. display "论文 1995 迁移率：农村 32.3 / 城市 35.8 / 全部 33.7"
+论文 1995 迁移率：农村 32.3 / 城市 35.8 / 全部 33.7
+
+. display "论文 1995 同类内：农村 31.1 / 城市 74.6 / 全部 49.4"
+论文 1995 同类内：农村 31.1 / 城市 74.6 / 全部 49.4
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\tab1b_out.log
+  log type:  text
+ closed on:  19 Oct 2026, 10:01:28
+-------------------------------------------------------------------------------

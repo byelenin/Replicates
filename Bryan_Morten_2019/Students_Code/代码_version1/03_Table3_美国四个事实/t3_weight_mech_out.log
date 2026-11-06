@@ -1,0 +1,306 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_weight_mech_out.log
+  log type:  text
+ opened on:  25 Oct 2026, 14:58:41
+
+. 
+. local root "C:\Users\任娜\Documents\deepseek-harness\default-workspace"
+
+. local fz   "D:\研一上\微观计量\复现"
+
+. 
+. * ---- 距离 ----
+. import delimited "`fz'\us_state_fips2usps.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(2 vars, 51 obs)
+
+. destring state_fips, replace
+state_fips already numeric; no replace
+
+. rename state_fips o
+
+. tempfile f2u
+
+. save `f2u'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_202c_000001.tmp saved as .dta format
+
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. rename o d
+
+. rename lat_o lat_d
+
+. rename lon lon_d
+
+. tempfile c_d
+
+. save `c_d'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_202c_000002.tmp saved as .dta format
+
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. tempfile c_o
+
+. save `c_o'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_202c_000003.tmp saved as .dta format
+
+. use `c_o', clear
+
+. cross using `c_d'
+
+. gen double _pio = _pi/180
+
+. gen double _dla = (lat_d - lat_o)*_pio
+
+. gen double _dlo = (lon_d - lon_o)*_pio
+
+. gen double _a = sin(_dla/2)^2 + cos(lat_o*_pio)*cos(lat_d*_pio)*sin(_dlo/2)^2
+
+. gen double dist_km = 2*6371*asin(min(1, sqrt(_a)))
+
+. keep o d dist_km
+
+. tempfile usdist
+
+. save `usdist'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_202c_000004.tmp saved as .dta format
+
+. 
+. * ---- 州对面板 ----
+. insheet using "`root'\usa_od.csv", clear
+(13 vars, 2,333,166 obs)
+
+. gen double m_w = w
+
+. gen double n_w = 1
+
+. collapse (sum) m_w n_w, by(o d year)
+
+. rename m_w m_od
+
+. rename n_w n_od
+
+. * ⚠ pop_o 必须含留守者（对角线）：π = o 出生者中住到 d 的比例
+. bysort o year: egen double pop_o = total(m_od)
+
+. gen double pi_od = m_od/pop_o
+
+. gen double ln_p  = ln(pi_od) if pi_od > 0
+
+. drop if o == d
+(102 observations deleted)
+
+. sort o d
+
+. merge m:1 o d using `usdist', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             5,000  
+    -----------------------------------------
+
+. gen double ln_dist = ln(dist_km)
+
+. gen long oyear = o*10000 + year
+
+. gen long dyear = d*10000 + year
+
+. 
+. display _n(2) "{hline 88}"
+
+
+----------------------------------------------------------------------------------------
+
+. display "  验证：加权 = 把这一行复制 w 遍"
+  验证：加权 = 把这一行复制 w 遍
+
+. display "{hline 88}"
+----------------------------------------------------------------------------------------
+
+. display ""
+
+
+. display "  ── 基准：按 n_od 加权 ──"
+  ── 基准：按 n_od 加权 ──
+
+. quietly reghdfe ln_p ln_dist [aw=n_od], absorb(oyear dyear) vce(cluster oyear dyear)
+
+. local A = _b[ln_dist]
+
+. display "     [aw=n_od]              β = " %10.6f `A'
+     [aw=n_od]              β =  -1.177108
+
+. 
+. display ""
+
+
+. display "  ── 把每一行复制 n_od 遍，然后【不加权】跑 ──"
+  ── 把每一行复制 n_od 遍，然后【不加权】跑 ──
+
+. preserve
+
+. expand n_od
+(913,748 observations created)
+
+. quietly count
+
+. display "     展开后行数 = " %12.0fc r(N)
+     展开后行数 =      918,748
+
+. quietly reghdfe ln_p ln_dist, absorb(oyear dyear) vce(cluster oyear dyear)
+
+. local B = _b[ln_dist]
+
+. display "     展开后不加权           β = " %10.6f `B'
+     展开后不加权           β =  -1.177108
+
+. restore
+
+. display "     ⇒ 两者之差 = " %12.2e abs(`A'-`B')
+     ⇒ 两者之差 =     7.72e-13
+
+. 
+. display ""
+
+
+. display "  ── 再验证：权重同乘一个常数，系数不变 ──"
+  ── 再验证：权重同乘一个常数，系数不变 ──
+
+. gen double n_od100 = n_od/100
+
+. quietly reghdfe ln_p ln_dist [aw=n_od], absorb(oyear dyear) vce(cluster oyear dyear)
+
+. display "     [aw=n_od]              β = " %10.6f _b[ln_dist]
+     [aw=n_od]              β =  -1.177108
+
+. quietly reghdfe ln_p ln_dist [aw=n_od100], absorb(oyear dyear) vce(cluster oyear dyear)
+
+. display "     [aw=n_od/100]          β = " %10.6f _b[ln_dist]
+     [aw=n_od/100]          β =  -1.177108
+
+. gen double ones = 1
+
+. quietly reghdfe ln_p ln_dist [aw=ones], absorb(oyear dyear) vce(cluster oyear dyear)
+
+. display "     [aw=1]（等于不加权）   β = " %10.6f _b[ln_dist]
+     [aw=1]（等于不加权）   β =  -1.237830
+
+. 
+. display ""
+
+
+. display "  ── 对比三种口径（列(1)：ln_p ← ln_dist）──"
+  ── 对比三种口径（列(1)：ln_p ← ln_dist）──
+
+. foreach wt in n_od m_od {
+  2.     quietly reghdfe ln_p ln_dist [aw=`wt'], absorb(oyear dyear) vce(cluster oyear dyear)
+  3.     display "     [aw=`wt']   β = " %10.6f _b[ln_dist]
+  4. }
+     [aw=n_od]   β =  -1.177108
+     [aw=m_od]   β =  -1.146132
+
+. quietly reghdfe ln_p ln_dist, absorb(oyear dyear) vce(cluster oyear dyear)
+
+. display "     不加权      β = " %10.6f _b[ln_dist]
+     不加权      β =  -1.237830
+
+. 
+. display ""
+
+
+. display "  ── 大州对 vs 小州对：各自的「斜率」──"
+  ── 大州对 vs 小州对：各自的「斜率」──
+
+. * 用离差形式看每一行的贡献方向
+. quietly reghdfe ln_p ln_dist [aw=n_od], absorb(oyear dyear) residuals
+
+. predict double _e if e(sample), resid
+
+. * 最大的 5 个州对
+. gsort -n_od
+
+. display "  人数最多的 5 行（加权时它们说得最响）："
+  人数最多的 5 行（加权时它们说得最响）：
+
+. list o d year n_od m_od ln_dist ln_p _e in 1/5, noobs sep(0) abbrev(10)
+
+  +----------------------------------------------------------------------+
+  |  o    d   year    n_od     m_od     ln_dist         ln_p          _e |
+  |----------------------------------------------------------------------|
+  | 36   12   1990   10737   213971   7.4430774   -2.7277745   .54596955 |
+  | 36    6   1990    9739   203167     8.22768   -2.7795867   .36926348 |
+  | 36   34   1990    9123   177018   5.7561525   -2.9173636   .23239095 |
+  | 17    6   1990    7444   154842   7.8753491   -2.6491301   .34697706 |
+  | 42   34   1990    6683   128767   5.6213201   -3.0127193   .36867188 |
+  +----------------------------------------------------------------------+
+
+. gsort n_od
+
+. display "  人数最少的 5 行（加权时几乎被忽略）："
+  人数最少的 5 行（加权时几乎被忽略）：
+
+. list o d year n_od m_od ln_dist ln_p _e in 1/5, noobs sep(0) abbrev(10)
+
+  +--------------------------------------------------------------------+
+  |  o    d   year   n_od   m_od     ln_dist         ln_p           _e |
+  |--------------------------------------------------------------------|
+  | 45   46   2010      1    159   7.6148406   -7.8139576   -.99812214 |
+  | 54   35   2010      1     83   7.7476757     -8.10075   -2.0192961 |
+  | 41   28   2010      1    246   7.9882141   -7.0972126    -.4177578 |
+  | 16   33   2010      1     96   8.1311436   -7.3897312   -.41335155 |
+  | 10   46   1990      1     29   7.6656282   -8.0539967   -.90718389 |
+  +--------------------------------------------------------------------+
+
+. 
+. display _n(2) "{hline 88}"
+
+
+----------------------------------------------------------------------------------------
+
+. display "  结束：$S_DATE $S_TIME"
+  结束：25 Oct 2026 14:59:16
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_weight_mech_out.log
+  log type:  text
+ closed on:  25 Oct 2026, 14:59:16
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,134 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\geoLbl_out.log
+  log type:  text
+ opened on:  18 Oct 2026, 20:45:55
+
+. 
+. use year geo2_id geo1_id bplid using "D:\研一上\微观计量\ipumsi_00002.dta", c
+> lear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. count
+  718,837
+
+. 
+. display ""
+
+
+. display "==================== geo2_id 的值标签 ===================="
+==================== geo2_id 的值标签 ====================
+
+. capture label list GEO2_ID
+
+. if _rc != 0 {
+.     display "  label list GEO2_ID 失败，rc = " _rc
+.     display "  试 label list GEO2ID ..."
+.     capture label list GEO2ID
+.     if _rc != 0 display "   也失败，rc = " _rc
+. }
+
+. 
+. display ""
+
+
+. display "==================== 抽 20 个县看标签长什么样 ===================="
+==================== 抽 20 个县看标签长什么样 ====================
+
+. preserve
+
+.     keep geo2_id
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(718,637 observations deleted)
+
+.     sort geo2_id
+
+.     list geo2_id in 1/20, noobs
+
+  +--------------+
+  |      geo2_id |
+  |--------------|
+  | simeulue, ac |
+  | aceh singkil |
+  | aceh tenggar |
+  | aceh tamiang |
+  |   aceh besar |
+  |--------------|
+  | pidie, pidie |
+  | bireuen, kot |
+  | kota banda a |
+  |  kota sabang |
+  | nias, nias s |
+  |--------------|
+  | mandailing n |
+  | tapanuli ten |
+  | tapanuli uta |
+  | labuhan batu |
+  | asahan, batu |
+  |--------------|
+  |   simalungun |
+  | dairi, papak |
+  |         karo |
+  | serdang beda |
+  |      langkat |
+  +--------------+
+
+.     list geo2_id in 180/200, noobs
+
+  +--------------+
+  |      geo2_id |
+  |--------------|
+  |   karangasem |
+  |     buleleng |
+  | lombok barat |
+  | lombok tenga |
+  | lombok timur |
+  |--------------|
+  | sumbawa, sum |
+  |        dompu |
+  | bima (regenc |
+  | sumba tengah |
+  |  sumba timur |
+  |--------------|
+  | rote ndao, s |
+  | timor tengah |
+  | timor tengah |
+  |         belu |
+  |         alor |
+  |--------------|
+  | lembata, flo |
+  |        sikka |
+  |         ende |
+  | ngada, nagek |
+  | manggarai, m |
+  |--------------|
+  |   east timor |
+  +--------------+
+
+. restore
+
+. 
+. display ""
+
+
+. display "==================== 同样检查出生省 bplid 的标签 ===================
+> ="
+==================== 同样检查出生省 bplid 的标签 ====================
+
+. capture label list BPLID
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\geoLbl_out.log
+  log type:  text
+ closed on:  18 Oct 2026, 20:46:22
+-------------------------------------------------------------------------------

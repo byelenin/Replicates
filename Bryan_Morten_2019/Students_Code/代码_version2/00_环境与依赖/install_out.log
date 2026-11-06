@@ -1,0 +1,162 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\install_out.log
+  log type:  text
+ opened on:  21 Oct 2026, 16:13:53
+
+. 
+. display _n "===== 第 1 步：装 require（reghdfe v6 的依赖管理器）====="
+
+===== 第 1 步：装 require（reghdfe v6 的依赖管理器）=====
+
+. capture noisily ssc install require, replace
+checking require consistency and verifying not already installed...
+installing into C:\Users\任娜\ado\plus\...
+installation complete.
+
+. display "  require 返回码 = " _rc
+  require 返回码 = 0
+
+. 
+. display _n "===== 第 2 步：装 gtools（ftools v2.5 依赖它）====="
+
+===== 第 2 步：装 gtools（ftools v2.5 依赖它）=====
+
+. capture noisily ssc install gtools, replace
+checking gtools consistency and verifying not already installed...
+installing into C:\Users\任娜\ado\plus\...
+installation complete.
+
+. display "  gtools 返回码 = " _rc
+  gtools 返回码 = 0
+
+. 
+. display _n "===== 第 3 步：装 moremata（fcollapse 分位数需要）====="
+
+===== 第 3 步：装 moremata（fcollapse 分位数需要）=====
+
+. capture noisily ssc install moremata, replace
+checking moremata consistency and verifying not already installed...
+installing into C:\Users\任娜\ado\plus\...
+installation complete.
+
+. display "  moremata 返回码 = " _rc
+  moremata 返回码 = 0
+
+. 
+. display _n "===== 第 4 步：验证命令都在 ====="
+
+===== 第 4 步：验证命令都在 =====
+
+. capture noisily which require
+C:\Users\任娜\ado\plus\r\require.ado
+*! version 1.3.1 19sep2023
+
+. display "  require  返回码 = " _rc
+  require  返回码 = 0
+
+. capture noisily which gtools
+C:\Users\任娜\ado\plus\g\gtools.ado
+*! version 1.10.1 05Dec2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmai
+> l.com
+*! Program for managing the gtools package installation
+
+. display "  gtools   返回码 = " _rc
+  gtools   返回码 = 0
+
+. capture noisily which gegen
+C:\Users\任娜\ado\plus\g\gegen.ado
+*! implementation -egen- using C for faster processing
+
+. display "  gegen    返回码 = " _rc
+  gegen    返回码 = 0
+
+. 
+. display _n "===== 第 5 步：实测 reghdfe 单维 absorb ====="
+
+===== 第 5 步：实测 reghdfe 单维 absorb =====
+
+. sysuse auto, clear
+(1978 automobile data)
+
+. capture noisily reghdfe price weight, absorb(foreign)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =         74
+Absorbing 1 HDFE group                            F(   1,     71) =      70.36
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.4989
+                                                  Adj R-squared   =     0.4848
+                                                  Within R-sq.    =     0.4977
+                                                  Root MSE        =  2117.0206
+
+------------------------------------------------------------------------------
+       price | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+      weight |   3.320737   .3958784     8.39   0.000     2.531378    4.110096
+       _cons |  -3861.573    1220.41    -3.16   0.002    -6295.001   -1428.146
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     foreign |         2           0           2     |
+-----------------------------------------------------+
+
+. display "  单维 absorb 返回码 = " _rc
+  单维 absorb 返回码 = 0
+
+. 
+. display _n "===== 第 6 步：实测【双向聚类】====="
+
+===== 第 6 步：实测【双向聚类】=====
+
+. capture noisily reghdfe price weight, absorb(foreign rep78) cluster(foreign r
+> ep78)
+(MWFE estimator converged in 3 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+warning: missing F statistic; dropped variables due to collinearity or too few 
+> clusters
+
+HDFE Linear regression                            Number of obs   =         69
+Absorbing 2 HDFE groups                           F(   1,      1) =          .
+Statistics robust to heteroskedasticity           Prob > F        =          .
+                                                  R-squared       =     0.5010
+                                                  Adj R-squared   =     0.4438
+Number of clusters (foreign) =          2         Within R-sq.    =     0.4937
+Number of clusters (rep78)   =          5         Root MSE        =  2172.1478
+
+                          (Std. err. adjusted for 2 clusters in foreign rep78)
+------------------------------------------------------------------------------
+             |               Robust
+       price | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+      weight |   3.392021          .        .       .            .           .
+       _cons |  -4138.662   476.9638    -8.68   0.073    -10199.06    1921.738
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     foreign |         2           2           0    *|
+       rep78 |         5           5           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. display "  双向聚类 返回码 = " _rc
+  双向聚类 返回码 = 0
+
+. 
+. display _n "===== 完成 ====="
+
+===== 完成 =====
+
+. log close
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\install_out.log
+  log type:  text
+ closed on:  21 Oct 2026, 16:19:52
+-------------------------------------------------------------------------------

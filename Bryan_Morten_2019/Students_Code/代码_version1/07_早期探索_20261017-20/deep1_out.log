@@ -1,0 +1,117 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\deep1_out.log
+  log type:  text
+ opened on:  20 Oct 2026, 11:07:00
+
+. 
+. cd "D:\研一上\微观计量\复现"
+D:\研一上\微观计量\复现
+
+. 
+. use year serial pernum geo1_id geo2_id geo2_id1995 bplid ///
+>     id1995a_bplreg id1995a_prevprov id1995a_prevreg ///
+>     mig1_p_id mig1_5_id mig2_5_id ///
+>     using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. 
+. display _n "==== 1. 官方变量标签 ===="
+
+==== 1. 官方变量标签 ====
+
+. foreach v in geo1_id geo2_id geo2_id1995 bplid id1995a_bplreg id1995a_prevpro
+> v id1995a_prevreg mig1_p_id mig1_5_id mig2_5_id {
+  2.     local lb : variable label `v'
+  3.     display "`v'  ->  `lb'"
+  4. }
+geo1_id  ->  indonesia, province 1971 - 2010 [level 1; consistent boundaries, g
+> is]
+geo2_id  ->  indonesia, regency 1971 - 2010 [level 2; consistent boundaries, gi
+> s]
+geo2_id1995  ->  indonesia, regency 1995 [level 2, gis]
+bplid  ->  province of birth, indonesia
+id1995a_bplreg  ->  regency/municipality of birth
+id1995a_prevprov  ->  province of previous residence
+id1995a_prevreg  ->  regency/municipality of previous residence
+mig1_p_id  ->  province of previous residence, indonesia; consistent boundaries
+> , gis
+mig1_5_id  ->  province of residence 5 years ago, indonesia; consistent boundar
+> ies, gis
+mig2_5_id  ->  regency of residence 5 years ago, indonesia; consistent boundari
+> es, gis
+
+. 
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. 
+. display _n "==== 2. 各变量的不同取值个数（编码粒度）===="
+
+==== 2. 各变量的不同取值个数（编码粒度）====
+
+. foreach v in geo1_id geo2_id geo2_id1995 id1995a_bplreg id1995a_prevprov id19
+> 95a_prevreg {
+  2.     quietly levelsof `v', local(lv)
+  3.     local k : word count `lv'
+  4.     display "`v'  不同取值 = `k'"
+  5. }
+geo1_id  不同取值 = 17
+geo2_id  不同取值 = 200
+geo2_id1995  不同取值 = 221
+id1995a_bplreg  不同取值 = 303
+id1995a_prevprov  不同取值 = 29
+id1995a_prevreg  不同取值 = 302
+
+. 
+. display _n "==== 3. 家庭内一致性：出生地/上次居住地是个人的还是家庭的 ===="
+
+==== 3. 家庭内一致性：出生地/上次居住地是个人的还是家庭的 ====
+
+. foreach v in id1995a_bplreg id1995a_prevreg geo2_id1995 {
+  2.     capture drop same_`v' allsame_`v'
+  3.     bysort serial: gen byte same_`v' = (`v' == `v'[1])
+  4.     bysort serial: egen byte allsame_`v' = min(same_`v')
+  5.     label values allsame_`v' .
+  6.     display _n "---- `v' 在家庭内是否全同 ----"
+  7.     tab allsame_`v'
+  8. }
+
+---- id1995a_bplreg 在家庭内是否全同 ----
+
+allsame_id1 |
+995a_bplreg |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    254,317       35.38       35.38
+          1 |    464,520       64.62      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+---- id1995a_prevreg 在家庭内是否全同 ----
+
+allsame_id1 |
+995a_prevre |
+          g |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    277,075       38.54       38.54
+          1 |    441,762       61.46      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+---- geo2_id1995 在家庭内是否全同 ----
+
+allsame_geo |
+   2_id1995 |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |    718,837      100.00      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\deep1_out.log
+  log type:  text
+ closed on:  20 Oct 2026, 11:07:10
+-------------------------------------------------------------------------------

@@ -1,0 +1,327 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_ss_decomp_out.log
+  log type:  text
+ opened on:  25 Oct 2026, 17:23:30
+
+. 
+. local root "C:\Users\任娜\Documents\deepseek-harness\default-workspace"
+
+. local fz   "D:\研一上\微观计量\复现"
+
+. 
+. * ---- 距离 ----
+. import delimited "`fz'\us_state_fips2usps.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(2 vars, 51 obs)
+
+. destring state_fips, replace
+state_fips already numeric; no replace
+
+. rename state_fips o
+
+. tempfile f2u
+
+. save `f2u'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_4760_000001.tmp saved as .dta format
+
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. rename o d
+
+. rename lat_o lat_d
+
+. rename lon lon_d
+
+. tempfile c_d
+
+. save `c_d'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_4760_000002.tmp saved as .dta format
+
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. tempfile c_o
+
+. save `c_o'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_4760_000003.tmp saved as .dta format
+
+. use `c_o', clear
+
+. cross using `c_d'
+
+. gen double _pio = _pi/180
+
+. gen double _dla = (lat_d - lat_o)*_pio
+
+. gen double _dlo = (lon_d - lon_o)*_pio
+
+. gen double _a = sin(_dla/2)^2 + cos(lat_o*_pio)*cos(lat_d*_pio)*sin(_dlo/2)^2
+
+. gen double dist_km = 2*6371*asin(min(1, sqrt(_a)))
+
+. keep o d dist_km
+
+. tempfile usdist
+
+. save `usdist'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_4760_000004.tmp saved as .dta format
+
+. 
+. * ---- 州对面板 ----
+. insheet using "`root'\usa_od.csv", clear
+(13 vars, 2,333,166 obs)
+
+. gen double m_w = w
+
+. collapse (sum) m_w, by(o d year)
+
+. rename m_w m_od
+
+. drop if o == d
+(102 observations deleted)
+
+. sort o d
+
+. merge m:1 o d using `usdist', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             5,000  
+    -----------------------------------------
+
+. gen double x = ln(dist_km)
+
+. gen double oyear = o*10000 + year
+
+. gen double dyear = d*10000 + year
+
+. 
+. quietly count
+
+. local N = r(N)
+
+. display _n(2) "{hline 92}"
+
+
+--------------------------------------------------------------------------------------------
+
+. display "  二阶矩的排序 —— 变量取 x = ln(距离)，N = `N' 个州对"
+  二阶矩的排序 —— 变量取 x = ln(距离)，N = 5000 个州对
+
+. display "{hline 92}"
+--------------------------------------------------------------------------------------------
+
+. 
+. * (A) 围绕 0
+. gen double ss0 = x^2
+
+. quietly summarize ss0
+
+. local A = r(sum)
+
+. 
+. * (B) 围绕总均值
+. quietly summarize x
+
+. local xb = r(mean)
+
+. gen double ssT = (x - `xb')^2
+
+. quietly summarize ssT
+
+. local B = r(sum)
+
+. 
+. * (C) 围绕「出发州×年」组均值
+. bysort oyear: egen double mo = mean(x)
+
+. gen double ssO = (x - mo)^2
+
+. quietly summarize ssO
+
+. local C = r(sum)
+
+. * 组间（出发州×年）
+. gen double ssB1 = (mo - `xb')^2
+
+. quietly summarize ssB1
+
+. local B1 = r(sum)
+
+. 
+. * (D) 围绕「目的州×年」组均值
+. bysort dyear: egen double md = mean(x)
+
+. gen double ssD = (x - md)^2
+
+. quietly summarize ssD
+
+. local D = r(sum)
+
+. gen double ssB2 = (md - `xb')^2
+
+. quietly summarize ssB2
+
+. local B2 = r(sum)
+
+. 
+. * (E) 双向迭代去均值
+. gen double xt = x
+
+. forvalues k = 1/250 {
+  2.     quietly bysort oyear: egen double _q = mean(xt)
+  3.     quietly replace xt = xt - _q
+  4.     quietly drop _q
+  5.     quietly bysort dyear: egen double _q = mean(xt)
+  6.     quietly replace xt = xt - _q
+  7.     quietly drop _q
+  8. }
+
+. gen double ss2 = xt^2
+
+. quietly summarize ss2
+
+. local E = r(sum)
+
+. 
+. display _n "  ── 各口径的二阶矩 ──"
+
+  ── 各口径的二阶矩 ──
+
+. display "  " "{hline 74}"
+  --------------------------------------------------------------------------
+
+. display "  (A) 围绕 0                        Σx²                = " %14.4f `A'
+  (A) 围绕 0                        Σx²                =    269949.1143
+
+. display "  (B) 围绕【总均值】x̄              Σ(x−x̄)²            = " %14.4f `B'
+  (B) 围绕【总均值】x̄              Σ(x−x̄)²            =      2952.0454
+
+. display "  (C) 围绕【出发州×年】组均值       Σ(x−x̄_oyear)²      = " %14.4f `C'
+  (C) 围绕【出发州×年】组均值       Σ(x−x̄_oyear)²      =      2407.1434
+
+. display "  (D) 围绕【目的州×年】组均值       Σ(x−x̄_dyear)²      = " %14.4f `D'
+  (D) 围绕【目的州×年】组均值       Σ(x−x̄_dyear)²      =      2386.0098
+
+. display "  (E) 双向【迭代】去均值            Σ(x−x̃)²            = " %14.4f `E'
+  (E) 双向【迭代】去均值            Σ(x−x̃)²            =      1826.0110
+
+. display "  " "{hline 74}"
+  --------------------------------------------------------------------------
+
+. 
+. display _n "  ── 排序检验 ──"
+
+  ── 排序检验 ──
+
+. display "  (B) ≤ (A) ？  " %14.4f `B' " ≤ " %14.4f `A' "   →  " cond(`B' <= `A', "✓ 成立", "✗ 不成立")
+  (B) ≤ (A) ？       2952.0454 ≤    269949.1143   →  ✓ 成立
+
+. display "  (C) ≤ (B) ？  " %14.4f `C' " ≤ " %14.4f `B' "   →  " cond(`C' <= `B', "✓ 成立", "✗ 不成立")
+  (C) ≤ (B) ？       2407.1434 ≤      2952.0454   →  ✓ 成立
+
+. display "  (D) ≤ (B) ？  " %14.4f `D' " ≤ " %14.4f `B' "   →  " cond(`D' <= `B', "✓ 成立", "✗ 不成立")
+  (D) ≤ (B) ？       2386.0098 ≤      2952.0454   →  ✓ 成立
+
+. display "  (E) ≤ min(C,D) ？  " %14.4f `E' " →  " cond(`E' <= min(`C',`D'), "✓ 成立", "✗ 不成立")
+  (E) ≤ min(C,D) ？       1826.0110 →  ✓ 成立
+
+. 
+. display _n "  ── 关键：单向的方差分解是【精确】的；双向不是 ──"
+
+  ── 关键：单向的方差分解是【精确】的；双向不是 ──
+
+. display "  " "{hline 74}"
+  --------------------------------------------------------------------------
+
+. display "  单向 (出发州×年)：  组内 + 组间 = " %14.4f `C' " + " %14.4f `B1' " = " %14.4f `C'+`B1'
+  单向 (出发州×年)：  组内 + 组间 =      2407.1434 +       544.9021 =      2952.0454
+
+. display "                      总二阶矩 (B) = " %14.4f `B'
+                      总二阶矩 (B) =      2952.0454
+
+. display "                      差           = " %12.2e abs(`B' - (`C'+`B1'))
+                      差           =     0.00e+00
+
+. display "                      ⇒ " cond(abs(`B'-(`C'+`B1')) < 1e-8, "✓ 精确相等（ANOVA 恒等式）", "✗ 不相等")
+                      ⇒ ✓ 精确相等（ANOVA 恒等式）
+
+. display ""
+
+
+. display "  单向 (目的州×年)：  组内 + 组间 = " %14.4f `D' " + " %14.4f `B2' " = " %14.4f `D'+`B2'
+  单向 (目的州×年)：  组内 + 组间 =      2386.0098 +       566.0356 =      2952.0454
+
+. display "                      总二阶矩 (B) = " %14.4f `B'
+                      总二阶矩 (B) =      2952.0454
+
+. display "                      差           = " %12.2e abs(`B' - (`D'+`B2'))
+                      差           =     0.00e+00
+
+. display "                      ⇒ " cond(abs(`B'-(`D'+`B2')) < 1e-8, "✓ 精确相等（ANOVA 恒等式）", "✗ 不相等")
+                      ⇒ ✓ 精确相等（ANOVA 恒等式）
+
+. display ""
+
+
+. display "  双向：组内_行 + 组内_列 = " %14.4f `C' " + " %14.4f `D' " = " %14.4f `C'+`D'
+  双向：组内_行 + 组内_列 =      2407.1434 +      2386.0098 =      4793.1532
+
+. display "                      总二阶矩 (B) = " %14.4f `B'
+                      总二阶矩 (B) =      2952.0454
+
+. display "                      ⇒ 两者【没有】固定的加减关系（重叠部分被算了两次）"
+                      ⇒ 两者【没有】固定的加减关系（重叠部分被算了两次）
+
+. 
+. display _n(2) "{hline 92}"
+
+
+--------------------------------------------------------------------------------------------
+
+. display "  结束：$S_DATE $S_TIME"
+  结束：25 Oct 2026 17:23:54
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_ss_decomp_out.log
+  log type:  text
+ closed on:  25 Oct 2026, 17:23:54
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

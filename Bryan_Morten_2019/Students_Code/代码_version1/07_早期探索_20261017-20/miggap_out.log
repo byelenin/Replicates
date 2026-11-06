@@ -1,0 +1,140 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\miggap_out.log
+  log type:  text
+ opened on:  20 Oct 2026, 11:01:22
+
+. 
+. use year age sex relate urban geo2_id1995 id1995a_bplreg perwt using "D:\研一
+> 上\微观计量\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. 
+. gen long bcode   = id1995a_bplreg
+
+. gen long geo_key = floor(geo2_id1995/1000)*100 + mod(geo2_id1995,100)
+
+. gen byte moved   = (geo_key != bcode) if !missing(id1995a_bplreg)
+
+. 
+. display _n "==== 各种样本口径下的加权迁移率（论文 1995 = 33.7%）===="
+
+==== 各种样本口径下的加权迁移率（论文 1995 = 33.7%）====
+
+. 
+. quietly summarize moved [aw=perwt]
+
+. display "全体                            : " %6.2f r(mean)*100
+全体                            :  16.41
+
+. 
+. quietly summarize moved [aw=perwt] if age >= 15
+
+. display "age >= 15                       : " %6.2f r(mean)*100
+age >= 15                       :  21.57
+
+. 
+. quietly summarize moved [aw=perwt] if age >= 15 & age <= 65
+
+. display "age 15-65                       : " %6.2f r(mean)*100
+age 15-65                       :  21.72
+
+. 
+. quietly summarize moved [aw=perwt] if sex == 1
+
+. display "男性                            : " %6.2f r(mean)*100
+男性                            :  16.67
+
+. 
+. quietly summarize moved [aw=perwt] if sex == 1 & age >= 15 & age <= 65
+
+. display "男性 15-65                      : " %6.2f r(mean)*100
+男性 15-65                      :  22.27
+
+. 
+. quietly summarize moved [aw=perwt] if relate == 1
+
+. display "户主                            : " %6.2f r(mean)*100
+户主                            :  25.17
+
+. 
+. quietly summarize moved [aw=perwt] if relate == 1 & sex == 1 & age >= 15 & ag
+> e <= 65
+
+. display "男性户主 15-65（论文事实表口径）: " %6.2f r(mean)*100
+男性户主 15-65（论文事实表口径）:  25.89
+
+. 
+. display _n "==== 按年龄组的迁移率（加权）===="
+
+==== 按年龄组的迁移率（加权）====
+
+. gen agegrp = floor(age/10)*10
+
+. tab agegrp moved [aw=perwt], row
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |         moved
+    agegrp |         0          1 |     Total
+-----------+----------------------+----------
+         0 | 145,692.3  7,602.979 | 153,295.2 
+           |     95.04       4.96 |    100.00 
+-----------+----------------------+----------
+        10 |   143,809  17,760.66 | 161,569.7 
+           |     89.01      10.99 |    100.00 
+-----------+----------------------+----------
+        20 | 95,888.21   27,422.3 | 123,310.5 
+           |     77.76      22.24 |    100.00 
+-----------+----------------------+----------
+        30 | 81,283.63  26,290.09 | 107,573.7 
+           |     75.56      24.44 |    100.00 
+-----------+----------------------+----------
+        40 | 54,542.81   17,187.9 | 71,730.72 
+           |     76.04      23.96 |    100.00 
+-----------+----------------------+----------
+        50 | 38,570.51  11,689.08 | 50,259.59 
+           |     76.74      23.26 |    100.00 
+-----------+----------------------+----------
+        60 |26,792.873    6,771.1 | 33,563.97 
+           |     79.83      20.17 |    100.00 
+-----------+----------------------+----------
+        70 | 11,049.93  2,566.076 |    13,616 
+           |     81.15      18.85 |    100.00 
+-----------+----------------------+----------
+        80 | 2,577.192  499.06054 | 3,076.252 
+           |     83.78      16.22 |    100.00 
+-----------+----------------------+----------
+        90 |681.586074  159.74599 | 841.33207 
+           |     81.01      18.99 |    100.00 
+-----------+----------------------+----------
+     Total |600,888.01 117,948.99 |   718,837 
+           |     83.59      16.41 |    100.00 
+
+. 
+. display _n "==== 出生地变量缺失情况 ===="
+
+==== 出生地变量缺失情况 ====
+
+. count if missing(id1995a_bplreg)
+  0
+
+. count if missing(geo2_id1995)
+  0
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\miggap_out.log
+  log type:  text
+ closed on:  20 Oct 2026, 11:01:31
+-------------------------------------------------------------------------------

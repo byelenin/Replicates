@@ -1,0 +1,104 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\erase_out.log
+  log type:  text
+ opened on:  19 Oct 2026, 22:22:50
+
+. 
+. cd "C:\Users\任娜\Documents\deepseek-harness\default-workspace"
+C:\Users\任娜\Documents\deepseek-harness\default-workspace
+
+. 
+. display _n "==== 1. erase 一个不存在的文件 ===="
+
+==== 1. erase 一个不存在的文件 ====
+
+. capture noisily erase "test_lookup.dta"
+file test_lookup.dta not found
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 601
+
+. 
+. display _n "==== 2. 第一次 save（文件不存在）===="
+
+==== 2. 第一次 save（文件不存在）====
+
+. clear
+
+. input long bcode byte o_rural
+
+            bcode   o_rural
+  1. 1101 1
+  2. 1102 0
+  3. end
+
+. capture noisily save "test_lookup.dta"
+file test_lookup.dta saved
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 0
+
+. 
+. display _n "==== 3. 第二次 save，不加 replace（文件已存在）===="
+
+==== 3. 第二次 save，不加 replace（文件已存在）====
+
+. capture noisily save "test_lookup.dta"
+file test_lookup.dta already exists
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 602
+
+. 
+. display _n "==== 4. 第二次 save，加 replace ===="
+
+==== 4. 第二次 save，加 replace ====
+
+. capture noisily save "test_lookup.dta", replace
+file test_lookup.dta saved
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 0
+
+. 
+. display _n "==== 5. describe using —— 不加载数据就能看文件内容 ===="
+
+==== 5. describe using —— 不加载数据就能看文件内容 ====
+
+. capture noisily describe using "test_lookup.dta"
+
+Contains data                                 
+ Observations:             2                  19 Oct 2026 22:22
+    Variables:             2                  
+-------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+-------------------------------------------------------------------------------
+bcode           long    %12.0g                
+o_rural         byte    %8.0g                 
+-------------------------------------------------------------------------------
+Sorted by: 
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 0
+
+. 
+. display _n "==== 6. 清理 ===="
+
+==== 6. 清理 ====
+
+. capture noisily erase "test_lookup.dta"
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 0
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\erase_out.log
+  log type:  text
+ closed on:  19 Oct 2026, 22:22:50
+-------------------------------------------------------------------------------

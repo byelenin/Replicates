@@ -1,0 +1,147 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\desc00003_out.log
+  log type:  text
+ opened on:  18 Oct 2026, 17:49:42
+
+. 
+. display "==================== 变量清单 ===================="
+==================== 变量清单 ====================
+
+. describe using "D:\研一上\微观计量\ipumsi_00003.dta"
+
+Contains data                                 
+ Observations:       281,170                  18 OCT 2026 08:07
+    Variables:            29                  
+-------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+-------------------------------------------------------------------------------
+country         int     %8.0g      COUNTRY    country
+year            int     %8.0g      YEAR       year
+sample          long    %12.0g     SAMPLE     ipums sample identifier
+serial          long    %12.0g                household serial number
+hhwt            int     %8.0g                 household weight
+urban           byte    %8.0g      URBAN      urban-rural status
+geo1_id         long    %12.0g     GEO1_ID    indonesia, province 1971 - 2010
+                                                [level 1; consistent
+                                                boundaries, gis]
+geo2_id         long    %12.0g     GEO2_ID    indonesia, regency 1971 - 2010
+                                                [level 2; consistent
+                                                boundaries, gis]
+pernum          byte    %8.0g                 person number
+perwt           int     %8.0g                 person weight
+relate          byte    %8.0g      RELATE     relationship to household head
+                                                [general version]
+related         int     %8.0g      RELATED    relationship to household head
+                                                [detailed version]
+age             int     %8.0g      AGE        age
+sex             byte    %8.0g      SEX        sex
+bplid           byte    %8.0g      BPLID      province of birth, indonesia
+edattain        byte    %8.0g      EDATTAIN   educational attainment,
+                                                international recode [general
+                                                version]
+edattaind       int     %8.0g      EDATTAIND
+                                              educational attainment,
+                                                international recode [detailed
+                                                version]
+yrschool        byte    %8.0g      YRSCHOOL   years of schooling
+educid          int     %8.0g      EDUCID     educational attainment, indonesia
+empstat         byte    %8.0g      EMPSTAT    activity status (employment
+                                                status) [general version]
+empstatd        int     %8.0g      EMPSTATD   activity status (employment
+                                                status) [detailed version]
+labforce        byte    %8.0g      LABFORCE   labor force participation
+classwk         byte    %8.0g      CLASSWK    status in employment (class of
+                                                worker) [general version]
+classwkd        int     %8.0g      CLASSWKD   status in employment (class of
+                                                worker) [detailed version]
+occisco         byte    %8.0g      OCCISCO    occupation, isco general
+indgen          int     %8.0g      INDGEN     industry, general recode
+incwage         long    %12.0g     INCWAGE    wage and salary income
+mig1_5_id       long    %12.0g     MIG1_5_ID
+                                              province of residence 5 years
+                                                ago, indonesia; consistent
+                                                boundaries, gis
+mig2_5_id       long    %12.0g     MIG2_5_ID
+                                              regency of residence 5 years ago,
+                                                indonesia; consistent
+                                                boundaries, gis
+-------------------------------------------------------------------------------
+Sorted by: 
+
+. 
+. display ""
+
+
+. display "==================== 观测数与年份 ===================="
+==================== 观测数与年份 ====================
+
+. use using "D:\研一上\微观计量\ipumsi_00003.dta", clear
+
+. count
+  281,170
+
+. display "总观测数 = " r(N)
+总观测数 = 281170
+
+. 
+. capture confirm variable year
+
+. if _rc == 0 {
+.     display ""
+
+.     display "----- tab year -----"
+----- tab year -----
+.     tab year
+
+       year |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       1976 |    281,170      100.00      100.00
+------------+-----------------------------------
+      Total |    281,170      100.00
+. }
+
+. 
+. capture confirm variable sample
+
+. if _rc == 0 {
+.     display ""
+
+.     display "----- tab sample -----"
+----- tab sample -----
+.     tab sample
+
+                ipums sample identifier |      Freq.     Percent        Cum.
+----------------------------------------+-----------------------------------
+                         indonesia 1976 |    281,170      100.00      100.00
+----------------------------------------+-----------------------------------
+                                  Total |    281,170      100.00
+. }
+
+. 
+. capture confirm variable country
+
+. if _rc == 0 {
+.     display ""
+
+.     display "----- tab country -----"
+----- tab country -----
+.     tab country
+
+            country |      Freq.     Percent        Cum.
+--------------------+-----------------------------------
+          indonesia |    281,170      100.00      100.00
+--------------------+-----------------------------------
+              Total |    281,170      100.00
+. }
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\desc00003_out.log
+  log type:  text
+ closed on:  18 Oct 2026, 17:49:42
+-------------------------------------------------------------------------------

@@ -1,0 +1,760 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\theta_paper_spec_out.log
+  log type:  text
+ opened on:  22 Oct 2026, 21:01:50
+
+. 
+. display "{hline 80}"
+--------------------------------------------------------------------------------
+
+. display "  逐步补齐论文口径：份额定义 × 格子筛选"
+  逐步补齐论文口径：份额定义 × 格子筛选
+
+. display "  运行时间：$S_DATE $S_TIME"
+  运行时间：22 Oct 2026 21:01:50
+
+. display "{hline 80}"
+--------------------------------------------------------------------------------
+
+. 
+. *==============================================================================
+. * 1. 距离
+. *==============================================================================
+. import delimited "`fz'\idn_prov_dist25.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(3 vars, 625 obs)
+
+. destring o, replace
+o already numeric; no replace
+
+. destring d, replace
+d already numeric; no replace
+
+. destring dist_km, replace force
+dist_km already numeric; no replace
+
+. keep o d dist_km
+
+. tempfile iddist
+
+. save `iddist'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000001.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_fips2usps.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(2 vars, 51 obs)
+
+. destring state_fips, replace
+state_fips already numeric; no replace
+
+. rename state_fips o
+
+. tempfile f2u
+
+. save `f2u'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000002.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. rename o d
+
+. rename lat_o lat_d
+
+. rename lon_o lon_d
+
+. tempfile c_d
+
+. save `c_d'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000003.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. tempfile c_o
+
+. save `c_o'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000004.tmp saved as .dta format
+
+. 
+. use `c_o', clear
+
+. cross using `c_d'
+
+. gen double _pio = _pi/180
+
+. gen double _dla = (lat_d - lat_o)*_pio
+
+. gen double _dlo = (lon_d - lon_o)*_pio
+
+. gen double _a = sin(_dla/2)^2 + cos(lat_o*_pio)*cos(lat_d*_pio)*sin(_dlo/2)^2
+
+. gen double dist_km = 2*6371*asin(min(1, sqrt(_a)))
+
+. keep o d dist_km
+
+. tempfile usdist
+
+. save `usdist'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000005.tmp saved as .dta format
+
+. 
+. *==============================================================================
+. * 2. 美国面板基础：同时保留「全部人」和「有工资的人」两套份额
+. *==============================================================================
+. display _n "===== 2. 美国面板基础 ====="
+
+===== 2. 美国面板基础 =====
+
+. 
+. import delimited "`ussrc'", clear varnames(1) colrange(1:5)
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 2,333,166 obs)
+
+. capture destring o, replace
+
+. capture destring d, replace
+
+. capture destring year, replace
+
+. capture destring wage, replace force
+
+. capture destring w, replace force
+
+. 
+. keep o d year wage w
+
+. drop if missing(o) | missing(d) | missing(year)
+(0 observations deleted)
+
+. drop if missing(w) | w <= 0
+(102 observations deleted)
+
+. keep if year == 1990
+(326,127 observations deleted)
+
+. 
+. gen byte hasw = !missing(wage) & wage > 0
+
+. gen byte one    = 1
+
+. gen double wgt_all = w
+
+. gen double wgt_wg  = w if hasw
+(186,821 missing values generated)
+
+. gen double wx_w    = w*wage if hasw
+(186,821 missing values generated)
+
+. gen double wage_ok = wage if hasw
+(186,821 missing values generated)
+
+. 
+. collapse (sum) m_all=wgt_all (sum) m_wg=wgt_wg (sum) wx_w=wx_w (count) n_raw=one (count) n_wage=wage_ok, by(o d)
+
+. gen double wage_od = wx_w/m_wg if m_wg > 0 & !missing(m_wg)
+(3 missing values generated)
+
+. 
+. tempfile usbase
+
+. save `usbase'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000006.tmp saved as .dta format
+
+. quietly count
+
+. display "  美国 1990：(o,d) 格子数 = `r(N)'"
+  美国 1990：(o,d) 格子数 = 2593
+
+. 
+. *==============================================================================
+. * 3. 印尼面板基础
+. *==============================================================================
+. display _n "===== 3. 印尼面板基础 ====="
+
+===== 3. 印尼面板基础 =====
+
+. 
+. use year bplid geo1_id incwage perwt relate sex age using "`root'\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. keep if sex == 1 & relate == 1 & inrange(age, 15, 65)
+(583,784 observations deleted)
+
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. keep if inrange(o, 11, 18) | inrange(o, 31, 35) | inrange(o, 51, 54)
+(1,491 observations deleted)
+
+. keep if inrange(d, 11, 18) | inrange(d, 31, 35) | inrange(d, 51, 54)
+(4,963 observations deleted)
+
+. 
+. gen byte hasw = !missing(incwage) & incwage > 0 & incwage < 9999999
+
+. gen byte one    = 1
+
+. gen double wgt_all = perwt
+
+. gen double wgt_wg  = perwt if hasw
+(80,101 missing values generated)
+
+. gen double wx_w    = perwt*incwage if hasw
+(80,101 missing values generated)
+
+. gen double wage_ok = incwage if hasw
+(80,101 missing values generated)
+
+. 
+. collapse (sum) m_all=wgt_all (sum) m_wg=wgt_wg (sum) wx_w=wx_w (count) n_raw=one (count) n_wage=wage_ok, by(o d)
+
+. gen double wage_od = wx_w/m_wg if m_wg > 0 & !missing(m_wg)
+(15 missing values generated)
+
+. 
+. tempfile idbase
+
+. save `idbase'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000007.tmp saved as .dta format
+
+. quietly count
+
+. display "  印尼 1995：(o,d) 格子数 = `r(N)'"
+  印尼 1995：(o,d) 格子数 = 239
+
+. 
+. *==============================================================================
+. * 4. 子程序：给定 m_od 建完整估计样本
+. *==============================================================================
+. capture program drop buildpanel
+
+. program define buildpanel
+  1.     args distf out
+  2.     * 输入数据集须含：o d m_od wage_od n_raw n_wage
+.     quietly {
+  3.         bysort o: egen double pop_o  = total(m_od)
+  4.         bysort d: egen double m_in_d = total(m_od)
+  5.         egen double pop_all = total(m_od)
+  6.         gen double pi_do = m_od/pop_o
+  7.     }
+  8. 
+.     preserve
+  9.         keep if o == d
+ 10.         keep o pi_do
+ 11.         rename pi_do pi_oo
+ 12.         tempfile go
+ 13.         save `go'
+ 14.         rename o d
+ 15.         rename pi_oo pi_dd
+ 16.         tempfile gd
+ 17.         save `gd'
+ 18.     restore
+ 19. 
+.     preserve
+ 20.         keep o d pi_do
+ 21.         rename o _t1
+ 22.         rename d _t2
+ 23.         rename _t1 d
+ 24.         rename _t2 o
+ 25.         rename pi_do pi_rev
+ 26.         tempfile rv
+ 27.         save `rv'
+ 28.     restore
+ 29. 
+.     gen double pi_dnoto = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+ 30. 
+.     keep if o != d
+ 31.     merge m:1 o using `go', keep(master match) nogen
+ 32.     merge m:1 d using `gd', keep(master match) nogen
+ 33.     merge 1:1 o d using `rv', keep(master match) nogen
+ 34.     merge 1:1 o d using `distf', keep(master match) nogen
+ 35. 
+.     keep if !missing(pi_do) & pi_do > 0
+ 36.     keep if !missing(pi_rev) & pi_rev > 0
+ 37.     keep if !missing(pi_oo) & pi_oo > 0
+ 38.     keep if !missing(pi_dd) & pi_dd > 0
+ 39.     keep if !missing(pi_dnoto) & pi_dnoto > 0
+ 40.     keep if !missing(dist_km) & dist_km > 0
+ 41.     keep if !missing(wage_od) & wage_od > 0
+ 42. 
+.     gen double ln_p      = ln(pi_do)
+ 43.     gen double ln_p_rev  = ln(pi_rev)
+ 44.     gen double ln_poo    = ln(pi_oo)
+ 45.     gen double ln_pdd    = ln(pi_dd)
+ 46.     gen double ln_pdnoto = ln(pi_dnoto)
+ 47.     gen double ln_wage   = ln(wage_od)
+ 48.     save `out', replace
+ 49. end
+
+. 
+. *==============================================================================
+. * 5. 子程序：估 θ（PPML+控制函数IV）与 ρ（式 8），可加格子筛选
+. *==============================================================================
+. capture program drop estppml
+
+. program define estppml
+  1.     args tag cl nmin rawvar
+  2.     * nmin=0 表示不筛选
+.     if `nmin' > 0 {
+  3.         quietly drop if `rawvar' < `nmin'
+  4.     }
+  5.     quietly count
+  6.     local ncell = r(N)
+  7.     quietly count if !missing(wage_od)
+  8.     local nreg = r(N)
+  9. 
+.     if `ncell' < 10 {
+ 10.         display "  `tag'：样本太小，跳过"
+ 11.         exit
+ 12.     }
+ 13. 
+.     * --- θ：零阶段 ---
+.     quietly regress ln_p c.ln_pdnoto##c.ln_pdnoto
+ 14.     local r2z = e(r2)
+ 15.     quietly predict double phat, xb
+ 16. 
+.     * --- θ：PPML + 双向 FE + 控制函数 ---
+.     quietly capture reghdfe ln_p phat, absorb(o d) residuals(u)
+ 17.     if _rc != 0 {
+ 18.         display "  `tag'：第一阶段失败 rc=`=_rc'"
+ 19.         exit
+ 20.     }
+ 21.     quietly capture ppmlhdfe wage_od ln_p u, absorb(o d) cluster(`cl')
+ 22.     if _rc != 0 {
+ 23.         display "  `tag'：PPML 失败 rc=`=_rc'"
+ 24.         exit
+ 25.     }
+ 26.     local beta = _b[ln_p]
+ 27.     if `beta' >= 0 {
+ 28.         display "  `tag'：β 为正，θ 无解"
+ 29.         exit
+ 30.     }
+ 31.     local theta = -1/`beta'
+ 32. 
+.     * --- ρ：式(8) 两阶段网格搜索 ---
+.     quietly summarize wage_od
+ 33.     local V = r(Var)/r(mean)^2
+ 34.     local best = .
+ 35.     local bestv = .
+ 36.     forvalues i = 205/3000 {
+ 37.         local tt = `i'/100
+ 38.         local rhs = exp(lngamma(1-2/`tt'))/(exp(lngamma(1-1/`tt'))^2) - 1
+ 39.         local d = abs(`rhs' - `V')
+ 40.         if `bestv' == . | `d' < `bestv' {
+ 41.             local bestv = `d'
+ 42.             local best = `tt'
+ 43.         }
+ 44.     }
+ 45.     local c0 = `best' - 0.05
+ 46.     local c1 = `best' + 0.05
+ 47.     local bestv = .
+ 48.     forvalues i = 0/100 {
+ 49.         local tt = `c0' + `i'*0.001
+ 50.         if `tt' > 2 {
+ 51.             local rhs = exp(lngamma(1-2/`tt'))/(exp(lngamma(1-1/`tt'))^2) - 1
+ 52.             local d = abs(`rhs' - `V')
+ 53.             if `bestv' == . | `d' < `bestv' {
+ 54.                 local bestv = `d'
+ 55.                 local best = `tt'
+ 56.             }
+ 57.         }
+ 58.     }
+ 59.     local thetat = `best'
+ 60.     local rho = 1 - `thetat'/`theta'
+ 61. 
+.     display "  `tag'"
+ 62.     display "      样本：`ncell' 个 OD 对（其中 `nreg' 个有工资）   零阶段 R² = " %6.4f `r2z'
+ 63.     display "      θ  = " %8.4f `theta' "        θ̃ = " %7.4f `thetat' "        ρ = " %7.4f `rho'
+ 64.     display "      var(w)/w̄² = " %8.5f `V'
+ 65. end
+
+. 
+. *==============================================================================
+. * 6. 印尼：两种份额口径 × 三种筛选
+. *==============================================================================
+. display _n(2) "{hline 80}"
+
+
+--------------------------------------------------------------------------------
+
+. display "  印尼 1995"
+  印尼 1995
+
+. display "{hline 80}"
+--------------------------------------------------------------------------------
+
+. display "  论文值：θ = 12.5   ρ = 0.74   θ̃ = 3.18   τ̄ = 0.50"
+  论文值：θ = 12.5   ρ = 0.74   θ̃ = 3.18   τ̄ = 0.50
+
+. 
+. foreach share in m_all m_wg {
+  2.     if "`share'" == "m_all"  local slab "份额用【全部男性户主】"
+  3.     if "`share'" == "m_wg"   local slab "份额用【有工资的男性户主】（论文口径）"
+  4. 
+.     use `idbase', clear
+  5.     rename `share' m_od
+  6.     keep if m_od > 0 & !missing(wage_od) & wage_od > 0
+  7.     buildpanel `iddist' "`fz'\_tmp_id_`share'.dta"
+  8. 
+.     display _n "  ── `slab' ──"
+  9.     use "`fz'\_tmp_id_`share'.dta", clear
+ 10.     estppml "不筛选格子" o 0 n_raw
+ 11. 
+.     use "`fz'\_tmp_id_`share'.dta", clear
+ 12.     estppml "丢 n_raw < 5（全部人计数）" o 5 n_raw
+ 13. 
+.     use "`fz'\_tmp_id_`share'.dta", clear
+ 14.     estppml "丢 n_wage < 5（有工资者计数）" o 5 n_wage
+ 15. }
+(15 observations deleted)
+(208 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000009.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_00000a.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_00000c.tmp saved as .dta format
+(16 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             4
+        from master                         4  
+        from using                          0  
+
+    Matched                               204  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               208  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            32
+        from master                        32  
+        from using                          0  
+
+    Matched                               176  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             4
+        from master                         4  
+        from using                          0  
+
+    Matched                               204  
+    -----------------------------------------
+(0 observations deleted)
+(32 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(file D:\研一上\微观计量\复现\_tmp_id_m_all.dta not found)
+file D:\研一上\微观计量\复现\_tmp_id_m_all.dta saved
+
+  ── 份额用【全部男性户主】 ──
+  不筛选格子
+      样本：176 个 OD 对（其中 176 个有工资）   零阶段 R² = 0.1134
+      θ  =  11.2175        θ̃ =  4.1340        ρ =  0.6315
+      var(w)/w̄² =  0.16422
+  丢 n_raw < 5（全部人计数）
+      样本：151 个 OD 对（其中 151 个有工资）   零阶段 R² = 0.1223
+      θ  =  12.4399        θ̃ =  4.3690        ρ =  0.6488
+      var(w)/w̄² =  0.14089
+  丢 n_wage < 5（有工资者计数）
+      样本：128 个 OD 对（其中 128 个有工资）   零阶段 R² = 0.1196
+      θ  =  10.0406        θ̃ =  4.7800        ρ =  0.5239
+      var(w)/w̄² =  0.11086
+(15 observations deleted)
+(208 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000009.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_00000a.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_00000c.tmp saved as .dta format
+(16 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             4
+        from master                         4  
+        from using                          0  
+
+    Matched                               204  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               208  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            32
+        from master                        32  
+        from using                          0  
+
+    Matched                               176  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             4
+        from master                         4  
+        from using                          0  
+
+    Matched                               204  
+    -----------------------------------------
+(0 observations deleted)
+(32 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(file D:\研一上\微观计量\复现\_tmp_id_m_wg.dta not found)
+file D:\研一上\微观计量\复现\_tmp_id_m_wg.dta saved
+
+  ── 份额用【有工资的男性户主】（论文口径） ──
+  不筛选格子
+      样本：176 个 OD 对（其中 176 个有工资）   零阶段 R² = 0.2028
+      θ  =   7.7534        θ̃ =  4.1340        ρ =  0.4668
+      var(w)/w̄² =  0.16422
+  丢 n_raw < 5（全部人计数）
+      样本：151 个 OD 对（其中 151 个有工资）   零阶段 R² = 0.2025
+      θ  =  10.3728        θ̃ =  4.3690        ρ =  0.5788
+      var(w)/w̄² =  0.14089
+  丢 n_wage < 5（有工资者计数）
+      样本：128 个 OD 对（其中 128 个有工资）   零阶段 R² = 0.2057
+      θ  =   2.3214        θ̃ =  4.7800        ρ = -1.0591
+      var(w)/w̄² =  0.11086
+
+. 
+. *==============================================================================
+. * 7. 美国 1990：同上
+. *==============================================================================
+. display _n(2) "{hline 80}"
+
+
+--------------------------------------------------------------------------------
+
+. display "  美国 1990"
+  美国 1990
+
+. display "{hline 80}"
+--------------------------------------------------------------------------------
+
+. display "  论文值：θ = 27.6   ρ = 0.90   θ̃ = 2.69   τ̄ = 0.22"
+  论文值：θ = 27.6   ρ = 0.90   θ̃ = 2.69   τ̄ = 0.22
+
+. 
+. foreach share in m_all m_wg {
+  2.     if "`share'" == "m_all"  local slab "份额用【全部人】"
+  3.     if "`share'" == "m_wg"   local slab "份额用【有工资的人】（论文口径）"
+  4. 
+.     use `usbase', clear
+  5.     rename `share' m_od
+  6.     keep if m_od > 0 & !missing(wage_od) & wage_od > 0
+  7.     buildpanel `usdist' "`fz'\_tmp_us_`share'.dta"
+  8. 
+.     display _n "  ── `slab' ──"
+  9.     use "`fz'\_tmp_us_`share'.dta", clear
+ 10.     estppml "不筛选格子" o 0 n_raw
+ 11. 
+.     use "`fz'\_tmp_us_`share'.dta", clear
+ 12.     estppml "丢 n_raw < 5（全部人计数）" o 5 n_raw
+ 13. 
+.     use "`fz'\_tmp_us_`share'.dta", clear
+ 14.     estppml "丢 n_wage < 5（有工资者计数）" o 5 n_wage
+ 15. }
+(3 observations deleted)
+(2,539 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000009.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_00000a.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_00000c.tmp saved as .dta format
+(51 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            11
+        from master                        11  
+        from using                          0  
+
+    Matched                             2,528  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+(0 observations deleted)
+(11 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(file D:\研一上\微观计量\复现\_tmp_us_m_all.dta not found)
+file D:\研一上\微观计量\复现\_tmp_us_m_all.dta saved
+
+  ── 份额用【全部人】 ──
+  不筛选格子
+      样本：2528 个 OD 对（其中 2528 个有工资）   零阶段 R² = 0.4054
+      θ  =  29.5687        θ̃ =  5.4650        ρ =  0.8152
+      var(w)/w̄² =  0.07886
+  丢 n_raw < 5（全部人计数）
+      样本：2444 个 OD 对（其中 2444 个有工资）   零阶段 R² = 0.3791
+      θ  =  29.8984        θ̃ =  6.2750        ρ =  0.7901
+      var(w)/w̄² =  0.05635
+  丢 n_wage < 5（有工资者计数）
+      样本：2426 个 OD 对（其中 2426 个有工资）   零阶段 R² = 0.3752
+      θ  =  29.0483        θ̃ =  6.3020        ρ =  0.7831
+      var(w)/w̄² =  0.05579
+(3 observations deleted)
+(2,539 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_000009.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_00000a.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_7a40_00000c.tmp saved as .dta format
+(51 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            11
+        from master                        11  
+        from using                          0  
+
+    Matched                             2,528  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+(0 observations deleted)
+(11 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(file D:\研一上\微观计量\复现\_tmp_us_m_wg.dta not found)
+file D:\研一上\微观计量\复现\_tmp_us_m_wg.dta saved
+
+  ── 份额用【有工资的人】（论文口径） ──
+  不筛选格子
+      样本：2528 个 OD 对（其中 2528 个有工资）   零阶段 R² = 0.4131
+      θ  =  29.9601        θ̃ =  5.4650        ρ =  0.8176
+      var(w)/w̄² =  0.07886
+  丢 n_raw < 5（全部人计数）
+      样本：2444 个 OD 对（其中 2444 个有工资）   零阶段 R² = 0.3859
+      θ  =  30.2548        θ̃ =  6.2750        ρ =  0.7926
+      var(w)/w̄² =  0.05635
+  丢 n_wage < 5（有工资者计数）
+      样本：2426 个 OD 对（其中 2426 个有工资）   零阶段 R² = 0.3814
+      θ  =  29.3162        θ̃ =  6.3020        ρ =  0.7850
+      var(w)/w̄² =  0.05579
+
+. 
+. *==============================================================================
+. * 8. 说明
+. *==============================================================================
+. display _n(2) "{hline 80}"
+
+
+--------------------------------------------------------------------------------
+
+. display "  怎么读这张表"
+  怎么读这张表
+
+. display "{hline 80}"
+--------------------------------------------------------------------------------
+
+. display "  · 份额口径：论文在有工资的人里算迁移份额，我们之前用全部男性户主"
+  · 份额口径：论文在有工资的人里算迁移份额，我们之前用全部男性户主
+
+. display "  · 格子筛选：论文丢掉迁移人数少于 5 的格子（工资均值不可靠）"
+  · 格子筛选：论文丢掉迁移人数少于 5 的格子（工资均值不可靠）
+
+. display "  · 估计方法统一用 PPML + 双向固定效应 + 控制函数 IV"
+  · 估计方法统一用 PPML + 双向固定效应 + 控制函数 IV
+
+. display "  · 全部 6 种组合都做了 bootstrap 之外的点估计，标准误未计算"
+  · 全部 6 种组合都做了 bootstrap 之外的点估计，标准误未计算
+
+. 
+. log close
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\theta_paper_spec_out.log
+  log type:  text
+ closed on:  22 Oct 2026, 21:02:14
+------------------------------------------------------------------------------------------------------------------------------------------------------

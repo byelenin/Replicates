@@ -1,0 +1,212 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_sample_diag_out.log
+  log type:  text
+ opened on:  24 Oct 2026, 20:40:36
+
+. 
+. local ussrc "C:\Users\任娜\Documents\deepseek-harness\default-workspace\usa_od.csv"
+
+. 
+. display _n(2) "{hline 84}"
+
+
+------------------------------------------------------------------------------------
+
+. display "  usa_od.csv 结构诊断（论文 Table 3 报 个体数 2,294,054 / 州对 5,084）"
+  usa_od.csv 结构诊断（论文 Table 3 报 个体数 2,294,054 / 州对 5,084）
+
+. display "{hline 84}"
+------------------------------------------------------------------------------------
+
+. 
+. import delimited "`ussrc'", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(13 vars, 2,333,166 obs)
+
+. display _n "  ① 原始行数（= 个体数候选）：" %12.0fc _N
+
+  ① 原始行数（= 个体数候选）：   2,333,166
+
+. 
+. capture destring o, replace
+
+. capture destring d, replace
+
+. capture destring year, replace
+
+. capture destring w, replace force
+
+. capture destring wage, replace force
+
+. 
+. display _n "  ② 按年份"
+
+  ② 按年份
+
+. tab year, missing
+
+       year |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       1990 |  2,007,039       86.02       86.02
+       2010 |    326,127       13.98      100.00
+------------+-----------------------------------
+      Total |  2,333,166      100.00
+
+. 
+. display _n "  ③ 是否跨州（o != d）"
+
+  ③ 是否跨州（o != d）
+
+. gen byte mover = (o != d) if !missing(o) & !missing(d)
+
+. tab mover, missing
+
+      mover |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |  1,414,418       60.62       60.62
+          1 |    918,748       39.38      100.00
+------------+-----------------------------------
+      Total |  2,333,166      100.00
+
+. 
+. display _n "  ④ 按年份 × 是否跨州"
+
+  ④ 按年份 × 是否跨州
+
+. tab year mover, missing
+
+           |         mover
+      year |         0          1 |     Total
+-----------+----------------------+----------
+      1990 | 1,222,630    784,409 | 2,007,039 
+      2010 |   191,788    134,339 |   326,127 
+-----------+----------------------+----------
+     Total | 1,414,418    918,748 | 2,333,166 
+
+. 
+. display _n "  ⑤ 权重 w 的描述"
+
+  ⑤ 权重 w 的描述
+
+. summarize w, detail
+
+                              w
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            4              0
+ 5%            6              0
+10%            8              0       Obs           2,333,166
+25%           15              0       Sum of wgt.   2,333,166
+
+50%           21                      Mean           30.50833
+                        Largest       Std. dev.      36.71725
+75%           29            906
+90%           65            925       Variance       1348.156
+95%           93            929       Skewness         4.7761
+99%          207           1161       Kurtosis       36.80578
+
+. quietly summarize w
+
+. display "     w 之和 = " %16.0fc r(sum)
+     w 之和 =       71,181,009
+
+. 
+. display _n "  ⑥ 跨州个体的 w 之和（= 论文口径候选）"
+
+  ⑥ 跨州个体的 w 之和（= 论文口径候选）
+
+. quietly summarize w if mover == 1
+
+. display "     跨州 w 之和 = " %16.0fc r(sum)
+     跨州 w 之和 =       29,154,962
+
+. quietly summarize w if mover == 0
+
+. display "     留守 w 之和 = " %16.0fc r(sum)
+     留守 w 之和 =       42,026,047
+
+. 
+. display _n "  ⑦ 跨州「行数」（未加权个体数）"
+
+  ⑦ 跨州「行数」（未加权个体数）
+
+. quietly count if mover == 1
+
+. display "     跨州行数 = " %12.0fc r(N)
+     跨州行数 =      918,748
+
+. quietly count if mover == 0
+
+. display "     留守行数 = " %12.0fc r(N)
+     留守行数 =    1,414,418
+
+. 
+. display _n "  ⑧ 有工资的跨州个体"
+
+  ⑧ 有工资的跨州个体
+
+. quietly count if mover == 1 & !missing(wage) & wage > 0
+
+. display "     跨州且有工资行数 = " %12.0fc r(N)
+     跨州且有工资行数 =      846,936
+
+. quietly summarize w if mover == 1 & !missing(wage) & wage > 0
+
+. display "     跨州且有工资 w 之和 = " %16.0fc r(sum)
+     跨州且有工资 w 之和 =       27,125,297
+
+. 
+. display _n "  ⑨ 州对数量"
+
+  ⑨ 州对数量
+
+. preserve
+
+.     keep if mover == 1
+(1,414,418 observations deleted)
+
+.     contract o d year
+
+.     quietly count
+
+.     display "     跨州 (o,d,year) 对数（含对角线无关）= " %10.0fc r(N)
+     跨州 (o,d,year) 对数（含对角线无关）=      5,000
+
+.     quietly levelsof o, local(OL)
+
+.     quietly levelsof d, local(DL)
+
+.     local no : word count `OL'
+
+.     local nd : word count `DL'
+
+.     display "     出发州数 = `no'    目的州数 = `nd'"
+     出发州数 = 51    目的州数 = 51
+
+.     display "     若为平衡面板：`no'×`nd'×2 年 = " %8.0fc `no'*`nd'*2
+     若为平衡面板：51×51×2 年 =    5,202
+
+. restore
+
+. 
+. display _n(2) "{hline 84}"
+
+
+------------------------------------------------------------------------------------
+
+. display "  论文：个体数 2,294,054    州对 5,084（列1）/ 5,076（列2-4）"
+  论文：个体数 2,294,054    州对 5,084（列1）/ 5,076（列2-4）
+
+. display "  本 csv 总行数 " %12.0fc _N
+  本 csv 总行数    2,333,166
+
+. display "{hline 84}"
+------------------------------------------------------------------------------------
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_sample_diag_out.log
+  log type:  text
+ closed on:  24 Oct 2026, 20:40:51
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

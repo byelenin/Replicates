@@ -1,0 +1,1418 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\province_two_period.log
+  log type:  text
+ opened on:  22 Oct 2026, 11:42:25
+
+. 
+. display _n "================ 运行信息 ================"
+
+================ 运行信息 ================
+
+. display "运行时间  : $S_DATE $S_TIME"
+运行时间  : 22 Oct 2026 11:42:25
+
+. display "Stata 版本: `c(stata_version)'"
+Stata 版本: 19.5
+
+. display "1976 数据 : `root'\ipumsi_00003.dta"
+1976 数据 : D:\研一上\微观计量\ipumsi_00003.dta
+
+. display "1995 数据 : `root'\ipumsi_00002.dta"
+1995 数据 : D:\研一上\微观计量\ipumsi_00002.dta
+
+. 
+. *----------------------------------------------------------------------------
+> --
+. *  1. 省级距离矩阵
+. *     idn_prov_dist25.csv 为长表 o,d,dist_km，省码 11-81
+. *----------------------------------------------------------------------------
+> --
+. import delimited "`root'\复现\idn_prov_dist25.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(3 vars, 625 obs)
+
+. quietly count
+
+. local Ndist = r(N)
+
+. tempfile f_pdist
+
+. save "`f_pdist'", replace
+(file C:\Users\任娜\AppData\Local\Temp\ST_4edc_000001.tmp not found)
+file C:\Users\任娜\AppData\Local\Temp\ST_4edc_000001.tmp saved as .dta format
+
+. 
+. display _n "================ 省级距离矩阵 ================"
+
+================ 省级距离矩阵 ================
+
+. display "OD 省对数            : " %10.0fc `Ndist'
+OD 省对数            :        625
+
+. 
+. *============================================================================
+> ==
+. *  2. 构建 1976 年省级 OD 面板
+. *============================================================================
+> ==
+. display _n(2) "==============================================================
+> "
+
+
+==============================================================
+
+. display       " 构建 1976 年省级 OD 面板"
+ 构建 1976 年省级 OD 面板
+
+. display       "==============================================================
+> "
+==============================================================
+
+. 
+. use year bplid geo1_id incwage perwt relate sex age using "`root'\ipumsi_0000
+> 3.dta", clear
+
+. keep if year == 1976
+(0 observations deleted)
+
+. 
+. quietly count
+
+. local N76raw = r(N)
+
+. 
+. * 出生省 = bplid；现居省 = geo1_id - 360000（geo1_id 形如 360011 → 省 11）
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. 
+. * 只保留合法省码，剔除 98/99（其他/未知）
+. drop if !inrange(o,11,94) | !inrange(d,11,94)
+(2,151 observations deleted)
+
+. drop if o == 98 | o == 99
+(0 observations deleted)
+
+. 
+. quietly count
+
+. local N76ok = r(N)
+
+. 
+. * ---- 省际终身迁移率（个体层面，加权）----
+. gen byte moved_prov = (o != d)
+
+. quietly summarize perwt if moved_prov == 1
+
+. local mv1 = r(sum)
+
+. quietly summarize perwt
+
+. local tp1 = r(sum)
+
+. global rate76 = `mv1'/`tp1'*100
+
+. global pop76  = `tp1'
+
+. 
+. display "1976 原始记录数        : " %12.0fc `N76raw'
+1976 原始记录数        :      281,170
+
+. display "1976 有效省码记录数    : " %12.0fc `N76ok'
+1976 有效省码记录数    :      279,019
+
+. display "1976 省际终身迁移率    : " %8.2f $rate76 "%（加权）"
+1976 省际终身迁移率    :     5.38%（加权）
+
+. 
+. * ---- 一次性构造两套加权和，避免反复 preserve/restore ----
+. gen byte validw = (incwage > 0 & incwage < 9999990)
+
+. gen byte mh     = (relate == 1 & sex == 1 & age >= 15 & age <= 65)
+
+. 
+. gen double w_all  = perwt
+
+. gen double w_mh   = perwt*mh
+
+. gen double nw_all = perwt*validw
+
+. gen double nw_mh  = perwt*validw*mh
+
+. gen double ww_all = perwt*validw*incwage
+
+. gen double ww_mh  = perwt*validw*mh*incwage
+
+. 
+. collapse (sum) w_all w_mh nw_all nw_mh ww_all ww_mh, by(o d)
+
+. 
+. bysort o: egen double to_all = total(w_all)
+
+. bysort o: egen double to_mh  = total(w_mh)
+
+. 
+. gen double p_all    = w_all/to_all
+
+. gen double p_mh     = w_mh/to_mh
+
+. gen double wage_all = ww_all/nw_all
+(96 missing values generated)
+
+. gen double wage_mh  = ww_mh/nw_mh
+(128 missing values generated)
+
+. gen int year = 1976
+
+. 
+. merge 1:1 o d using "`f_pdist'", keep(master match)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            33
+        from master                        33  (_merge==1)
+        from using                          0  (_merge==2)
+
+    Matched                               425  (_merge==3)
+    -----------------------------------------
+
+. keep if _merge == 3
+(33 observations deleted)
+
+. drop _merge
+
+. 
+. gen double ln_p       = ln(p_all)
+
+. gen double ln_p_mh    = ln(p_mh)
+(69 missing values generated)
+
+. gen double ln_wage    = ln(wage_all)
+(90 missing values generated)
+
+. gen double ln_wage_mh = ln(wage_mh)
+(121 missing values generated)
+
+. gen double ln_dist    = ln(dist_km)
+(25 missing values generated)
+
+. 
+. tempfile f_76
+
+. save "`f_76'", replace
+(file C:\Users\任娜\AppData\Local\Temp\ST_4edc_000002.tmp not found)
+file C:\Users\任娜\AppData\Local\Temp\ST_4edc_000002.tmp saved as .dta format
+
+. 
+. quietly count
+
+. display "1976 可用 OD 省对数    : " %12.0fc r(N)
+1976 可用 OD 省对数    :          425
+
+. 
+. *============================================================================
+> ==
+. *  3. 构建 1995 年省级 OD 面板
+. *============================================================================
+> ==
+. display _n(2) "==============================================================
+> "
+
+
+==============================================================
+
+. display       " 构建 1995 年省级 OD 面板"
+ 构建 1995 年省级 OD 面板
+
+. display       "==============================================================
+> "
+==============================================================
+
+. 
+. use year bplid geo1_id incwage perwt relate sex age using "`root'\ipumsi_0000
+> 2.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. 
+. quietly count
+
+. local N95raw = r(N)
+
+. 
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. 
+. drop if !inrange(o,11,94) | !inrange(d,11,94)
+(28,500 observations deleted)
+
+. drop if o == 98 | o == 99
+(0 observations deleted)
+
+. 
+. quietly count
+
+. local N95ok = r(N)
+
+. 
+. gen byte moved_prov = (o != d)
+
+. quietly summarize perwt if moved_prov == 1
+
+. local mv2 = r(sum)
+
+. quietly summarize perwt
+
+. local tp2 = r(sum)
+
+. global rate95 = `mv2'/`tp2'*100
+
+. global pop95  = `tp2'
+
+. 
+. display "1995 原始记录数        : " %12.0fc `N95raw'
+1995 原始记录数        :      718,837
+
+. display "1995 有效省码记录数    : " %12.0fc `N95ok'
+1995 有效省码记录数    :      690,337
+
+. display "1995 省际终身迁移率    : " %8.2f $rate95 "%（加权）"
+1995 省际终身迁移率    :     8.91%（加权）
+
+. 
+. gen byte validw = (incwage > 0 & incwage < 9999990)
+
+. gen byte mh     = (relate == 1 & sex == 1 & age >= 15 & age <= 65)
+
+. 
+. gen double w_all  = perwt
+
+. gen double w_mh   = perwt*mh
+
+. gen double nw_all = perwt*validw
+
+. gen double nw_mh  = perwt*validw*mh
+
+. gen double ww_all = perwt*validw*incwage
+
+. gen double ww_mh  = perwt*validw*mh*incwage
+
+. 
+. collapse (sum) w_all w_mh nw_all nw_mh ww_all ww_mh, by(o d)
+
+. 
+. bysort o: egen double to_all = total(w_all)
+
+. bysort o: egen double to_mh  = total(w_mh)
+
+. 
+. gen double p_all    = w_all/to_all
+
+. gen double p_mh     = w_mh/to_mh
+
+. gen double wage_all = ww_all/nw_all
+(63 missing values generated)
+
+. gen double wage_mh  = ww_mh/nw_mh
+(84 missing values generated)
+
+. gen int year = 1995
+
+. 
+. merge 1:1 o d using "`f_pdist'", keep(master match)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            21
+        from master                        21  (_merge==1)
+        from using                          0  (_merge==2)
+
+    Matched                               374  (_merge==3)
+    -----------------------------------------
+
+. keep if _merge == 3
+(21 observations deleted)
+
+. drop _merge
+
+. 
+. gen double ln_p       = ln(p_all)
+
+. gen double ln_p_mh    = ln(p_mh)
+(35 missing values generated)
+
+. gen double ln_wage    = ln(wage_all)
+(53 missing values generated)
+
+. gen double ln_wage_mh = ln(wage_mh)
+(73 missing values generated)
+
+. gen double ln_dist    = ln(dist_km)
+(16 missing values generated)
+
+. 
+. tempfile f_95
+
+. save "`f_95'", replace
+(file C:\Users\任娜\AppData\Local\Temp\ST_4edc_000003.tmp not found)
+file C:\Users\任娜\AppData\Local\Temp\ST_4edc_000003.tmp saved as .dta format
+
+. 
+. quietly count
+
+. display "1995 可用 OD 省对数    : " %12.0fc r(N)
+1995 可用 OD 省对数    :          374
+
+. 
+. *============================================================================
+> ==
+. *  4. 合并两期，并限制在两期共有的 16 个省
+. *============================================================================
+> ==
+. use "`f_76'", clear
+
+. append using "`f_95'"
+
+. 
+. quietly count
+
+. local Npool_raw = r(N)
+
+. 
+. * 两期共有省份：11-18（苏门答腊）、31-35（爪哇）、51-53（巴厘与努沙登加拉）
+. keep if inrange(o,11,18) | inrange(o,31,35) | inrange(o,51,53)
+(268 observations deleted)
+
+. keep if inrange(d,11,18) | inrange(d,31,35) | inrange(d,51,53)
+(83 observations deleted)
+
+. 
+. quietly count
+
+. local Npool = r(N)
+
+. quietly levelsof o, local(plist)
+
+. local nprov : word count `plist'
+
+. 
+. * 剔除对角线（dist = 0，ln_dist 缺失）
+. keep if !missing(ln_dist)
+(32 observations deleted)
+
+. 
+. egen long oy = group(o year)
+
+. egen long dy = group(d year)
+
+. 
+. display _n "================ 合并后面板 ================"
+
+================ 合并后面板 ================
+
+. display "合并（未限省份）OD 省对数 : " %10.0fc `Npool_raw'
+合并（未限省份）OD 省对数 :        799
+
+. display "限制为共有 16 省后         : " %10.0fc `Npool'
+限制为共有 16 省后         :        448
+
+. display "省份数                     : " %10.0fc `nprov'
+省份数                     :         16
+
+. quietly count
+
+. display "剔除对角线后可用于回归     : " %10.0fc r(N)
+剔除对角线后可用于回归     :        416
+
+. 
+. display _n "--- 关键变量描述统计 ---"
+
+--- 关键变量描述统计 ---
+
+. summarize p_all wage_all dist_km ln_p ln_wage ln_dist, sep(0)
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       p_all |        416    .0052889    .0119366   6.13e-06   .1732777
+    wage_all |        366      165967    144142.6       3000     632712
+     dist_km |        416    1029.531    680.3067     97.912   3357.703
+        ln_p |        416   -6.572514    1.805408   -12.0031   -1.75286
+     ln_wage |        366    11.37781    1.329645   8.006368   13.35777
+     ln_dist |        416    6.688954    .7575322   4.584069   8.119012
+
+. 
+. *============================================================================
+> ==
+. *  5. 回归：两期合并（对应论文 Appendix Table 4 的设定，但只有 2 个年份）
+. *     absorb(oy dy) = 出生省×年份 + 现居省×年份 固定效应
+. *     cluster(oy dy) = 双向聚类（论文口径）
+. *============================================================================
+> ==
+. display _n(2) "==============================================================
+> "
+
+
+==============================================================
+
+. display       " 两期合并回归（16 省 × 2 年）"
+ 两期合并回归（16 省 × 2 年）
+
+. display       "==============================================================
+> "
+==============================================================
+
+. 
+. display _n "===== (1) Fact 1 引力方程   论文 = -0.606 ====="
+
+===== (1) Fact 1 引力方程   论文 = -0.606 =====
+
+. reghdfe ln_p ln_dist, absorb(oy dy) cluster(oy dy)
+(MWFE estimator converged in 6 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        416
+Absorbing 2 HDFE groups                           F(   1,     31) =      91.22
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.7819
+                                                  Adj R-squared   =     0.7421
+Number of clusters (oy)      =         32         Within R-sq.    =     0.4533
+Number of clusters (dy)      =         32         Root MSE        =     0.9169
+
+                                 (Std. err. adjusted for 32 clusters in oy dy)
+------------------------------------------------------------------------------
+             |               Robust
+        ln_p | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |  -1.212313   .1269337    -9.55   0.000    -1.471196   -.9534301
+       _cons |   1.536592   .8484209     1.81   0.080    -.1937734    3.266958
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          oy |        32          32           0    *|
+          dy |        32          32           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local pb1 = _b[ln_dist]
+
+. local ps1 = _se[ln_dist]
+
+. local pn1 = e(N)
+
+. 
+. display _n "===== (2) Fact 2 工资楔子   论文 =  0.041 ====="
+
+===== (2) Fact 2 工资楔子   论文 =  0.041 =====
+
+. reghdfe ln_wage ln_dist, absorb(oy dy) cluster(oy dy)
+(MWFE estimator converged in 7 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        366
+Absorbing 2 HDFE groups                           F(   1,     31) =       0.09
+Statistics robust to heteroskedasticity           Prob > F        =     0.7602
+                                                  R-squared       =     0.9143
+                                                  Adj R-squared   =     0.8961
+Number of clusters (oy)      =         32         Within R-sq.    =     0.0003
+Number of clusters (dy)      =         32         Root MSE        =     0.4286
+
+                                 (Std. err. adjusted for 32 clusters in oy dy)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |  -.0113108   .0367351    -0.31   0.760    -.0862325    .0636108
+       _cons |   11.45299   .2468718    46.39   0.000     10.94949    11.95649
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          oy |        32          32           0    *|
+          dy |        32          32           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local pb2 = _b[ln_dist]
+
+. local ps2 = _se[ln_dist]
+
+. local pn2 = e(N)
+
+. 
+. display _n "===== (3) Fact 3 选择       论文 = -0.066 ====="
+
+===== (3) Fact 3 选择       论文 = -0.066 =====
+
+. reghdfe ln_wage ln_p, absorb(oy dy) cluster(oy dy)
+(MWFE estimator converged in 7 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        366
+Absorbing 2 HDFE groups                           F(   1,     31) =       0.04
+Statistics robust to heteroskedasticity           Prob > F        =     0.8370
+                                                  R-squared       =     0.9143
+                                                  Adj R-squared   =     0.8961
+Number of clusters (oy)      =         32         Within R-sq.    =     0.0003
+Number of clusters (dy)      =         32         Root MSE        =     0.4286
+
+                                 (Std. err. adjusted for 32 clusters in oy dy)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        ln_p |  -.0055649   .0268188    -0.21   0.837    -.0602621    .0491324
+       _cons |   11.34237   .1739557    65.20   0.000     10.98758    11.69715
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          oy |        32          32           0    *|
+          dy |        32          32           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local pb3 = _b[ln_p]
+
+. local ps3 = _se[ln_p]
+
+. local pn3 = e(N)
+
+. 
+. display _n "===== (4) Fact 4 联合       论文 = -0.036 / 0.019 ====="
+
+===== (4) Fact 4 联合       论文 = -0.036 / 0.019 =====
+
+. reghdfe ln_wage ln_p ln_dist, absorb(oy dy) cluster(oy dy)
+(MWFE estimator converged in 7 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        366
+Absorbing 2 HDFE groups                           F(   2,     31) =       0.57
+Statistics robust to heteroskedasticity           Prob > F        =     0.5707
+                                                  R-squared       =     0.9145
+                                                  Adj R-squared   =     0.8959
+Number of clusters (oy)      =         32         Within R-sq.    =     0.0019
+Number of clusters (dy)      =         32         Root MSE        =     0.4289
+
+                                 (Std. err. adjusted for 32 clusters in oy dy)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        ln_p |  -.0186141   .0294041    -0.63   0.531    -.0785841     .041356
+     ln_dist |  -.0334421    .032254    -1.04   0.308    -.0992246    .0323405
+       _cons |   11.48157   .2269387    50.59   0.000     11.01873    11.94442
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          oy |        32          32           0    *|
+          dy |        32          32           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local pb4p = _b[ln_p]
+
+. local ps4p = _se[ln_p]
+
+. local pb4d = _b[ln_dist]
+
+. local ps4d = _se[ln_dist]
+
+. local pn4 = e(N)
+
+. 
+. *============================================================================
+> ==
+. *  6. 回归：分年份
+. *============================================================================
+> ==
+. display _n(2) "==============================================================
+> "
+
+
+==============================================================
+
+. display       " 分年份回归（单年，故退化为 absorb(o d) cluster(o d)）"
+ 分年份回归（单年，故退化为 absorb(o d) cluster(o d)）
+
+. display       "==============================================================
+> "
+==============================================================
+
+. 
+. foreach yy in 1976 1995 {
+  2.     display _n "===================== `yy' 年 ====================="
+  3. 
+.     display _n "--- (1) Fact 1  ln π 对 ln 距离 ---"
+  4.     reghdfe ln_p ln_dist if year == `yy', absorb(o d) cluster(o d)
+  5.     local b1_`yy' = _b[ln_dist]
+  6.     local s1_`yy' = _se[ln_dist]
+  7.     local n1_`yy' = e(N)
+  8. 
+.     display _n "--- (2) Fact 2  ln w 对 ln 距离 ---"
+  9.     reghdfe ln_wage ln_dist if year == `yy', absorb(o d) cluster(o d)
+ 10.     local b2_`yy' = _b[ln_dist]
+ 11.     local s2_`yy' = _se[ln_dist]
+ 12.     local n2_`yy' = e(N)
+ 13. 
+.     display _n "--- (3) Fact 3  ln w 对 ln π ---"
+ 14.     reghdfe ln_wage ln_p if year == `yy', absorb(o d) cluster(o d)
+ 15.     local b3_`yy' = _b[ln_p]
+ 16.     local s3_`yy' = _se[ln_p]
+ 17.     local n3_`yy' = e(N)
+ 18. 
+.     display _n "--- (4) Fact 4  ln w 对 ln π 与 ln 距离 ---"
+ 19.     reghdfe ln_wage ln_p ln_dist if year == `yy', absorb(o d) cluster(o d)
+ 20.     local b4p_`yy' = _b[ln_p]
+ 21.     local s4p_`yy' = _se[ln_p]
+ 22.     local b4d_`yy' = _b[ln_dist]
+ 23.     local s4d_`yy' = _se[ln_dist]
+ 24.     local n4_`yy' = e(N)
+ 25. }
+
+===================== 1976 年 =====================
+
+--- (1) Fact 1  ln π 对 ln 距离 ---
+(MWFE estimator converged in 6 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        188
+Absorbing 2 HDFE groups                           F(   1,     15) =      48.05
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.7640
+                                                  Adj R-squared   =     0.7153
+Number of clusters (o)       =         16         Within R-sq.    =     0.4331
+Number of clusters (d)       =         16         Root MSE        =     0.9886
+
+                                   (Std. err. adjusted for 16 clusters in o d)
+------------------------------------------------------------------------------
+             |               Robust
+        ln_p | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |  -1.246011   .1797518    -6.93   0.000    -1.629143   -.8628794
+       _cons |   1.485144   1.192456     1.25   0.232    -1.056516    4.026803
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |        16          16           0    *|
+           d |        16          16           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+--- (2) Fact 2  ln w 对 ln 距离 ---
+(MWFE estimator converged in 7 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+warning: variance matrix is nonsymmetric or highly singular.
+
+HDFE Linear regression                            Number of obs   =        153
+Absorbing 2 HDFE groups                           F(   1,     15) =       0.06
+Statistics robust to heteroskedasticity           Prob > F        =     0.8046
+                                                  R-squared       =     0.4147
+                                                  Adj R-squared   =     0.2587
+Number of clusters (o)       =         16         Within R-sq.    =     0.0007
+Number of clusters (d)       =         16         Root MSE        =     0.5190
+
+                                   (Std. err. adjusted for 16 clusters in o d)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |   -.018761          .        .       .            .           .
+       _cons |   10.04997          .        .       .            .           .
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |        16          16           0    *|
+           d |        16          16           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+--- (3) Fact 3  ln w 对 ln π ---
+(MWFE estimator converged in 7 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        153
+Absorbing 2 HDFE groups                           F(   1,     15) =       0.04
+Statistics robust to heteroskedasticity           Prob > F        =     0.8507
+                                                  R-squared       =     0.4147
+                                                  Adj R-squared   =     0.2586
+Number of clusters (o)       =         16         Within R-sq.    =     0.0006
+Number of clusters (d)       =         16         Root MSE        =     0.5190
+
+                                   (Std. err. adjusted for 16 clusters in o d)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        ln_p |   .0093501   .0488272     0.19   0.851    -.0947227    .1134229
+       _cons |   9.987667   .3252617    30.71   0.000     9.294388    10.68095
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |        16          16           0    *|
+           d |        16          16           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+--- (4) Fact 4  ln w 对 ln π 与 ln 距离 ---
+(MWFE estimator converged in 7 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        153
+Absorbing 2 HDFE groups                           F(   2,     15) =       0.04
+Statistics robust to heteroskedasticity           Prob > F        =     0.9654
+                                                  R-squared       =     0.4148
+                                                  Adj R-squared   =     0.2525
+Number of clusters (o)       =         16         Within R-sq.    =     0.0008
+Number of clusters (d)       =         16         Root MSE        =     0.5211
+
+                                   (Std. err. adjusted for 16 clusters in o d)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        ln_p |   .0048696   .0508659     0.10   0.925    -.1035485    .1132877
+     ln_dist |  -.0126429   .0603361    -0.21   0.837    -.1412462    .1159603
+       _cons |   10.04163   .4450198    22.56   0.000     9.093091    10.99017
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |        16          16           0    *|
+           d |        16          16           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+===================== 1995 年 =====================
+
+--- (1) Fact 1  ln π 对 ln 距离 ---
+(MWFE estimator converged in 5 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        228
+Absorbing 2 HDFE groups                           F(   1,     15) =      41.59
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.7933
+                                                  Adj R-squared   =     0.7594
+Number of clusters (o)       =         16         Within R-sq.    =     0.4736
+Number of clusters (d)       =         16         Root MSE        =     0.8577
+
+                                   (Std. err. adjusted for 16 clusters in o d)
+------------------------------------------------------------------------------
+             |               Robust
+        ln_p | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |  -1.184983   .1837449    -6.45   0.000    -1.576626   -.7933396
+       _cons |   1.579812   1.235366     1.28   0.220    -1.053309    4.212934
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |        16          16           0    *|
+           d |        16          16           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+--- (2) Fact 2  ln w 对 ln 距离 ---
+(MWFE estimator converged in 6 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        213
+Absorbing 2 HDFE groups                           F(   1,     15) =       0.03
+Statistics robust to heteroskedasticity           Prob > F        =     0.8673
+                                                  R-squared       =     0.3637
+                                                  Adj R-squared   =     0.2506
+Number of clusters (o)       =         16         Within R-sq.    =     0.0001
+Number of clusters (d)       =         16         Root MSE        =     0.3571
+
+                                   (Std. err. adjusted for 16 clusters in o d)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |  -.0059246   .0348595    -0.17   0.867    -.0802259    .0683767
+       _cons |   12.46012    .235461    52.92   0.000     11.95825    12.96199
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |        16          16           0    *|
+           d |        16          16           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+--- (3) Fact 3  ln w 对 ln π ---
+(MWFE estimator converged in 6 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        213
+Absorbing 2 HDFE groups                           F(   1,     15) =       0.85
+Statistics robust to heteroskedasticity           Prob > F        =     0.3719
+                                                  R-squared       =     0.3662
+                                                  Adj R-squared   =     0.2535
+Number of clusters (o)       =         16         Within R-sq.    =     0.0040
+Number of clusters (d)       =         16         Root MSE        =     0.3564
+
+                                   (Std. err. adjusted for 16 clusters in o d)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        ln_p |  -.0197928   .0215024    -0.92   0.372    -.0656241    .0260385
+       _cons |   12.29749   .1407832    87.35   0.000     11.99741    12.59756
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |        16          16           0    *|
+           d |        16          16           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+--- (4) Fact 4  ln w 对 ln π 与 ln 距离 ---
+(MWFE estimator converged in 6 iterations)
+Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Ge
+> lbach & Miller applied.
+
+HDFE Linear regression                            Number of obs   =        213
+Absorbing 2 HDFE groups                           F(   2,     15) =       2.26
+Statistics robust to heteroskedasticity           Prob > F        =     0.1385
+                                                  R-squared       =     0.3700
+                                                  Adj R-squared   =     0.2538
+Number of clusters (o)       =         16         Within R-sq.    =     0.0100
+Number of clusters (d)       =         16         Root MSE        =     0.3563
+
+                                   (Std. err. adjusted for 16 clusters in o d)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_wage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        ln_p |  -.0432199   .0236406    -1.83   0.087    -.0936086    .0071688
+     ln_dist |  -.0552046   .0328373    -1.68   0.113    -.1251957    .0147864
+       _cons |    12.5207    .215596    58.07   0.000     12.06117    12.98024
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |        16          16           0    *|
+           d |        16          16           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. *============================================================================
+> ==
+. *  7. 稳健性：男性户主 15-65 岁、按单元人数加权（两期合并）
+. *============================================================================
+> ==
+. display _n(2) "==============================================================
+> "
+
+
+==============================================================
+
+. display       " 稳健性：男性户主 15-65 岁，按单元人数加权（两期合并）"
+ 稳健性：男性户主 15-65 岁，按单元人数加权（两期合并）
+
+. display       "==============================================================
+> "
+==============================================================
+
+. 
+. display _n "--- (1) Fact 1 加权 ---"
+
+--- (1) Fact 1 加权 ---
+
+. reghdfe ln_p_mh ln_dist [aw = w_mh], absorb(oy dy) cluster(oy)
+(MWFE estimator converged in 9 iterations)
+
+HDFE Linear regression                            Number of obs   =        375
+Absorbing 2 HDFE groups                           F(   1,     31) =     270.20
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8775
+                                                  Adj R-squared   =     0.8527
+                                                  Within R-sq.    =     0.5574
+Number of clusters (oy)      =         32         Root MSE        =     0.4320
+
+                                    (Std. err. adjusted for 32 clusters in oy)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_p_mh | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |  -.8236776   .0501091   -16.44   0.000    -.9258758   -.7214793
+       _cons |   1.240425   .3067088     4.04   0.000      .614888    1.865962
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          oy |        32          32           0    *|
+          dy |        32           1          31     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local rb1 = _b[ln_dist]
+
+. 
+. display _n "--- (2) Fact 2 加权 ---"
+
+--- (2) Fact 2 加权 ---
+
+. reghdfe ln_wage_mh ln_dist [aw = nw_mh], absorb(oy dy) cluster(oy)
+(dropped 1 singleton observations)
+(MWFE estimator converged in 9 iterations)
+
+HDFE Linear regression                            Number of obs   =        342
+Absorbing 2 HDFE groups                           F(   1,     31) =       1.31
+Statistics robust to heteroskedasticity           Prob > F        =     0.2618
+                                                  R-squared       =     0.9859
+                                                  Adj R-squared   =     0.9828
+                                                  Within R-sq.    =     0.0118
+Number of clusters (oy)      =         32         Root MSE        =     0.1592
+
+                                    (Std. err. adjusted for 32 clusters in oy)
+------------------------------------------------------------------------------
+             |               Robust
+  ln_wage_mh | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |   .0302857   .0265001     1.14   0.262    -.0237616     .084333
+       _cons |   11.74365   .1588914    73.91   0.000     11.41959    12.06771
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          oy |        32          32           0    *|
+          dy |        31           1          30     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local rb2 = _b[ln_dist]
+
+. 
+. display _n "--- (3) Fact 3 加权 ---"
+
+--- (3) Fact 3 加权 ---
+
+. reghdfe ln_wage_mh ln_p_mh [aw = nw_mh], absorb(oy dy) cluster(oy)
+(dropped 1 singleton observations)
+(MWFE estimator converged in 9 iterations)
+
+HDFE Linear regression                            Number of obs   =        342
+Absorbing 2 HDFE groups                           F(   1,     31) =       8.78
+Statistics robust to heteroskedasticity           Prob > F        =     0.0058
+                                                  R-squared       =     0.9867
+                                                  Adj R-squared   =     0.9837
+                                                  Within R-sq.    =     0.0642
+Number of clusters (oy)      =         32         Root MSE        =     0.1549
+
+                                    (Std. err. adjusted for 32 clusters in oy)
+------------------------------------------------------------------------------
+             |               Robust
+  ln_wage_mh | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_p_mh |  -.0646929   .0218305    -2.96   0.006    -.1092165   -.0201693
+       _cons |   11.68497   .0810787   144.12   0.000     11.51961    11.85033
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          oy |        32          32           0    *|
+          dy |        31           1          30     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local rb3 = _b[ln_p_mh]
+
+. 
+. display _n "--- (4) Fact 4 加权 ---"
+
+--- (4) Fact 4 加权 ---
+
+. reghdfe ln_wage_mh ln_p_mh ln_dist [aw = nw_mh], absorb(oy dy) cluster(oy)
+(dropped 1 singleton observations)
+(MWFE estimator converged in 9 iterations)
+
+HDFE Linear regression                            Number of obs   =        342
+Absorbing 2 HDFE groups                           F(   2,     31) =       7.57
+Statistics robust to heteroskedasticity           Prob > F        =     0.0021
+                                                  R-squared       =     0.9869
+                                                  Adj R-squared   =     0.9839
+                                                  Within R-sq.    =     0.0812
+Number of clusters (oy)      =         32         Root MSE        =     0.1538
+
+                                    (Std. err. adjusted for 32 clusters in oy)
+------------------------------------------------------------------------------
+             |               Robust
+  ln_wage_mh | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_p_mh |   -.103815   .0275932    -3.76   0.001    -.1600917   -.0475383
+     ln_dist |  -.0559742   .0332689    -1.68   0.103    -.1238266    .0118782
+       _cons |   11.87529   .1542699    76.98   0.000     11.56065    12.18992
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          oy |        32          32           0    *|
+          dy |        31           1          30     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local rb4p = _b[ln_p_mh]
+
+. local rb4d = _b[ln_dist]
+
+. 
+. *============================================================================
+> ==
+. *  8. 结果汇总
+. *============================================================================
+> ==
+. matrix PL = J(6, 4, .)
+
+. matrix colnames PL = Fact1 Fact2 Fact3 Fact4
+
+. matrix rownames PL = DistPaper DistOurs DistSE MigPaper MigOurs MigSE
+
+. 
+. matrix PL[1,1] = -0.606
+
+. matrix PL[1,2] =  0.041
+
+. matrix PL[1,4] =  0.019
+
+. matrix PL[2,1] = `pb1'
+
+. matrix PL[2,2] = `pb2'
+
+. matrix PL[2,4] = `pb4d'
+
+. matrix PL[3,1] = `ps1'
+
+. matrix PL[3,2] = `ps2'
+
+. matrix PL[3,4] = `ps4d'
+
+. matrix PL[4,3] = -0.066
+
+. matrix PL[4,4] = -0.036
+
+. matrix PL[5,3] = `pb3'
+
+. matrix PL[5,4] = `pb4p'
+
+. matrix PL[6,3] = `ps3'
+
+. matrix PL[6,4] = `ps4p'
+
+. 
+. matrix BY = J(5, 4, .)
+
+. matrix colnames BY = Fact1 Fact2 Fact3 Fact4
+
+. matrix rownames BY = Paper Dist1976 Dist1995 Mig1976 Mig1995
+
+. 
+. matrix BY[1,1] = -0.606
+
+. matrix BY[1,2] =  0.041
+
+. matrix BY[1,4] =  0.019
+
+. matrix BY[2,1] = `b1_1976'
+
+. matrix BY[2,2] = `b2_1976'
+
+. matrix BY[2,4] = `b4d_1976'
+
+. matrix BY[3,1] = `b1_1995'
+
+. matrix BY[3,2] = `b2_1995'
+
+. matrix BY[3,4] = `b4d_1995'
+
+. matrix BY[4,3] = `b3_1976'
+
+. matrix BY[4,4] = `b4p_1976'
+
+. matrix BY[5,3] = `b3_1995'
+
+. matrix BY[5,4] = `b4p_1995'
+
+. 
+. matrix NN = J(2, 4, .)
+
+. matrix colnames NN = Fact1 Fact2 Fact3 Fact4
+
+. matrix rownames NN = Paper Ours
+
+. matrix NN[1,1] = 1452
+
+. matrix NN[1,2] = 1444
+
+. matrix NN[1,3] = 1444
+
+. matrix NN[1,4] = 1444
+
+. matrix NN[2,1] = `pn1'
+
+. matrix NN[2,2] = `pn2'
+
+. matrix NN[2,3] = `pn3'
+
+. matrix NN[2,4] = `pn4'
+
+. 
+. display _n(2) "==============================================================
+> ================"
+
+
+==============================================================================
+
+. display       "  省级两期分析结果（1976 + 1995，16 个共有省份）"
+  省级两期分析结果（1976 + 1995，16 个共有省份）
+
+. display       "==============================================================
+> ================"
+==============================================================================
+
+. display       "  对照对象：论文 Appendix Table 4（省级，1995+2011+2012 三年合
+> 并）"
+  对照对象：论文 Appendix Table 4（省级，1995+2011+2012 三年合并）
+
+. 
+. display _n "【两期合并】16 省 × 2 年，absorb(oy dy)，cluster(oy dy)"
+
+【两期合并】16 省 × 2 年，absorb(oy dy)，cluster(oy dy)
+
+. matlist PL, border(rows) left(14) format(%9.3f)
+
+              ---------------------------------------------------------
+                           |     Fact1      Fact2      Fact3      Fact4 
+              -------------+-------------------------------------------
+                 DistPaper |    -0.606      0.041          .      0.019 
+                  DistOurs |    -1.212     -0.011          .     -0.033 
+                    DistSE |     0.127      0.037          .      0.032 
+                  MigPaper |         .          .     -0.066     -0.036 
+                   MigOurs |         .          .     -0.006     -0.019 
+                     MigSE |         .          .      0.027      0.029 
+              ---------------------------------------------------------
+
+. 
+. display _n "【样本量】"
+
+【样本量】
+
+. matlist NN, border(rows) left(14) format(%9.0f)
+
+              ---------------------------------------------------------
+                           |     Fact1      Fact2      Fact3      Fact4 
+              -------------+-------------------------------------------
+                     Paper |      1452       1444       1444       1444 
+                      Ours |       416        366        366        366 
+              ---------------------------------------------------------
+
+. 
+. display _n "【分年份】单年 absorb(o d)，cluster(o d)"
+
+【分年份】单年 absorb(o d)，cluster(o d)
+
+. matlist BY, border(rows) left(14) format(%9.3f)
+
+              ---------------------------------------------------------
+                           |     Fact1      Fact2      Fact3      Fact4 
+              -------------+-------------------------------------------
+                     Paper |    -0.606      0.041          .      0.019 
+                  Dist1976 |    -1.246     -0.019          .     -0.013 
+                  Dist1995 |    -1.185     -0.006          .     -0.055 
+                   Mig1976 |         .          .      0.009      0.005 
+                   Mig1995 |         .          .     -0.020     -0.043 
+              ---------------------------------------------------------
+
+. 
+. display _n "【省际终身迁移率（加权）】"
+
+【省际终身迁移率（加权）】
+
+. display "  1976 年 : " %8.2f $rate76 "%      加权人口 " %12.0fc $pop76
+  1976 年 :     5.38%      加权人口  125,320,598
+
+. display "  1995 年 : " %8.2f $rate95 "%      加权人口 " %12.0fc $pop95
+  1995 年 :     8.91%      加权人口  165,603,400
+
+. display "  变化    : " %8.2f ($rate95 - $rate76) " 个百分点"
+  变化    :     3.52 个百分点
+
+. 
+. display _n "【稳健性】男性户主 15-65 岁、按单元人数加权（两期合并）"
+
+【稳健性】男性户主 15-65 岁、按单元人数加权（两期合并）
+
+. display "  Fact 1  ln π 对 ln 距离 : " %8.3f `rb1'
+  Fact 1  ln π 对 ln 距离 :   -0.824
+
+. display "  Fact 2  ln w 对 ln 距离 : " %8.3f `rb2'
+  Fact 2  ln w 对 ln 距离 :    0.030
+
+. display "  Fact 3  ln w 对 ln π    : " %8.3f `rb3'
+  Fact 3  ln w 对 ln π    :   -0.065
+
+. display "  Fact 4  ln w 对 ln π    : " %8.3f `rb4p'
+  Fact 4  ln w 对 ln π    :   -0.104
+
+. display "          ln w 对 ln 距离 : " %8.3f `rb4d'
+          ln w 对 ln 距离 :   -0.056
+
+. 
+. display _n "=================================================================
+> ============="
+
+==============================================================================
+
+. display    "  注：Dist = ln 距离的系数；Mig = ln 迁移份额的系数。"
+  注：Dist = ln 距离的系数；Mig = ln 迁移份额的系数。
+
+. display    "      论文第 (5) 列 Amenities 需要 PODES 设施数据，无法复现。"
+      论文第 (5) 列 Amenities 需要 PODES 设施数据，无法复现。
+
+. display    "=================================================================
+> ============="
+==============================================================================
+
+. 
+. *============================================================================
+> ==
+. *  9. 说明
+. *============================================================================
+> ==
+. display _n(2) "================ 分析说明 ================"
+
+
+================ 分析说明 ================
+
+. display "1. 本文件是【拓展分析】，不是论文表格的复现。论文 Appendix Table 4 
+> 使用"
+1. 本文件是【拓展分析】，不是论文表格的复现。论文 Appendix Table 4 使用
+
+. display "   1995、2011、2012 三年；1976 年不在论文使用的年份内。"
+   1995、2011、2012 三年；1976 年不在论文使用的年份内。
+
+. display "2. 为什么只能做省级：1976 文件的出生地变量 bplid 为 province of birt
+> h，"
+2. 为什么只能做省级：1976 文件的出生地变量 bplid 为 province of birth，
+
+. display "   只有省级；1995 文件另有 id1995a_bplreg（regency of birth）才是县
+> 级。"
+   只有省级；1995 文件另有 id1995a_bplreg（regency of birth）才是县级。
+
+. display "   1976 缺出生县，无法区分省内跨县迁移与未迁移，故 Table 1、Table 2 
+> 的"
+   1976 缺出生县，无法区分省内跨县迁移与未迁移，故 Table 1、Table 2 的
+
+. display "   县级结果无法用 1976 数据复现。"
+   县级结果无法用 1976 数据复现。
+
+. display "3. 省份取交集：两期共有的省份只有 16 个（苏门答腊 11-18、爪哇 31-35
+> 、"
+3. 省份取交集：两期共有的省份只有 16 个（苏门答腊 11-18、爪哇 31-35、
+
+. display "   巴厘与努沙登加拉 51-53）。1976 另有加里曼丹(61-64)、苏拉威西(71-7
+> 4)、"
+   巴厘与努沙登加拉 51-53）。1976 另有加里曼丹(61-64)、苏拉威西(71-74)、
+
+. display "   马鲁古(81)、巴布亚(94)，而 1995 的 IPUMS 样本缺失这些省份。"
+   马鲁古(81)、巴布亚(94)，而 1995 的 IPUMS 样本缺失这些省份。
+
+. display "4. 固定效应：两期合并用 absorb(oy dy)（出生省×年份 + 现居省×年份），
+> "
+4. 固定效应：两期合并用 absorb(oy dy)（出生省×年份 + 现居省×年份），
+
+. display "   对应论文 Appendix Table 4 的 Origin x Year 与 Destination x Year
+> 。"
+   对应论文 Appendix Table 4 的 Origin x Year 与 Destination x Year。
+
+. display "5. 聚类：两期合并用 cluster(oy dy) 双向聚类；分年份时单年退化为"
+5. 聚类：两期合并用 cluster(oy dy) 双向聚类；分年份时单年退化为
+
+. display "   cluster(o d)。加权稳健性一栏因双向聚类与双向固定效应共线，改为 cl
+> uster(oy)。"
+   cluster(o d)。加权稳健性一栏因双向聚类与双向固定效应共线，改为 cluster(oy)。
+
+. display "6. 样本量差异：论文 N = 1,452 / 1,444 来自 25 个省 × 3 个年份；"
+6. 样本量差异：论文 N = 1,452 / 1,444 来自 25 个省 × 3 个年份；
+
+. display "   本分析为 16 个省 × 2 个年份，故 N 更小。"
+   本分析为 16 个省 × 2 个年份，故 N 更小。
+
+. display "7. 工资口径：1976 与 1995 的名义工资水平差异极大（1976 年中位数约 1 
+> 万盾，"
+7. 工资口径：1976 与 1995 的名义工资水平差异极大（1976 年中位数约 1 万盾，
+
+. display "   1995 年约 20 万盾），但回归使用对数且含双向固定效应，水平差异会被
+> 吸收；"
+   1995 年约 20 万盾），但回归使用对数且含双向固定效应，水平差异会被吸收；
+
+. display "   跨年比较系数时应注意到这一点。"
+   跨年比较系数时应注意到这一点。
+
+. display "=========================================="
+==========================================
+
+. 
+. log close
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\province_two_period.log
+  log type:  text
+ closed on:  22 Oct 2026, 11:42:38
+-------------------------------------------------------------------------------

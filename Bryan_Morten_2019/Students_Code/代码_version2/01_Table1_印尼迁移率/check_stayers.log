@@ -1,0 +1,201 @@
+
+  ___  ____  ____  ____  ____ ®
+ /__    /   ____/   /   ____/      StataNow 19.5
+___/   /   /___/   /   /___/       MP—Parallel Edition
+
+ Statistics and Data Science       Copyright 1985-2025 StataCorp LLC
+                                   StataCorp
+                                   4905 Lakeway Drive
+                                   College Station, Texas 77845 USA
+                                   800-782-8272        https://www.stata.com
+                                   979-696-4600        service@stata.com
+
+Stata license: Unlimited-user 2-core network, expiring  8 Apr 2027
+Serial number: 501909302397
+  Licensed to: NJUsxy
+               NJU
+
+Notes:
+      1. Stata is running in batch mode.
+      2. Unicode is supported; see help unicode_advice.
+      3. More than 2 billion observations are allowed; see help obs_advice.
+      4. Maximum number of variables is set to 5,000 but can be increased;
+          see help set_maxvar.
+
+. do C:\Users\任娜\Documents\deepseek-harness\default-workspace\check_stayers.d
+> o 
+
+. * ============================================================
+. * 检查：不迁移的人（留在老家）在不在面板里？
+. * ============================================================
+. clear all
+
+. set more off
+
+. 
+. use "D:\研一上\微观计量\复现\idn_od_panel.dta", clear
+
+. 
+. display _n(2) "{hline 76}"
+
+
+----------------------------------------------------------------------------
+
+. display "面板结构"
+面板结构
+
+. display "{hline 76}"
+----------------------------------------------------------------------------
+
+. describe, short
+
+Contains data from D:\研一上\微观计量\复现\idn_od_panel.dta
+ Observations:           328                  
+    Variables:            12                  17 Oct 2026 15:58
+Sorted by: year  o  d
+
+. display ""
+
+
+. describe
+
+Contains data from D:\研一上\微观计量\复现\idn_od_panel.dta
+ Observations:           328                  
+    Variables:            12                  17 Oct 2026 15:58
+-------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+-------------------------------------------------------------------------------
+year            int     %8.0g      YEAR       year
+o               int     %8.0g                 
+d               int     %8.0g                 
+n               double  %10.0g                origin-o born persons living in d
+                                                (weighted)
+n_o             float   %9.0g                 total origin-o born persons
+                                                (weighted)
+p_od            double  %10.0g                share of origin-o population
+                                                living in d
+ww              double  %10.0g                (sum) ww
+sum_w           double  %8.0g                 (sum) perwt
+wage_od         double  %10.0g                average wage of o-born workers in
+                                                d
+obs_prov        byte    %8.0g                 
+ln_wage         double  %10.0g                
+ln_p            double  %10.0g                
+-------------------------------------------------------------------------------
+Sorted by: year  o  d
+
+. 
+. display _n(2) "{hline 76}"
+
+
+----------------------------------------------------------------------------
+
+. display "关键检查：有没有 o == d 的观测（即留在老家的人）"
+关键检查：有没有 o == d 的观测（即留在老家的人）
+
+. display "{hline 76}"
+----------------------------------------------------------------------------
+
+. 
+. capture confirm variable o
+
+. local has_o = (_rc == 0)
+
+. capture confirm variable d
+
+. local has_d = (_rc == 0)
+
+. 
+. if `has_o' & `has_d' {
+.     quietly count
+.     local Ntot = r(N)
+.     quietly count if o == d
+.     local Ndiag = r(N)
+.     display "  总 OD 对数            = `Ntot'"
+  总 OD 对数            = 328
+.     display "  其中 o == d（不迁移）  = `Ndiag'"
+  其中 o == d（不迁移）  = 16
+.     display "  非对角线（迁移）       = " `Ntot' - `Ndiag'
+  非对角线（迁移）       = 312
+.     display ""
+
+. 
+.     if `Ndiag' > 0 {
+.         display "  >>> 结论：不迁移的人在面板里，共有 `Ndiag' 个 (o,o) 观测"
+  >>> 结论：不迁移的人在面板里，共有 16 个 (o,o) 观测
+.     }
+.     else {
+.         display "  >>> 结论：面板里【没有】o == d 的观测"
+.     }
+. 
+.     display _n "  按是否迁移分组，看迁移比例和工资"
+
+  按是否迁移分组，看迁移比例和工资
+.     gen byte stay = (o == d)
+.     label define stayl 0 "迁移(o≠d)" 1 "不迁移(o=d)"
+.     label values stay stayl
+. 
+.     capture confirm variable pi
+.     if _rc != 0 {
+.         capture confirm variable pi_do
+.     }
+.     local pivar ""
+.     foreach v in pi pi_do share_pi {
+  2.         capture confirm variable `v'
+  3.         if _rc == 0 & "`pivar'" == "" local pivar "`v'"
+  4.     }
+.     display "  找到的迁移比例变量：`pivar'"
+  找到的迁移比例变量：
+. 
+.     local wvar ""
+.     foreach v in wage_od wage ln_wage wagedo {
+  2.         capture confirm variable `v'
+  3.         if _rc == 0 & "`wvar'" == "" local wvar "`v'"
+  4.     }
+.     display "  找到的工资变量：`wvar'"
+  找到的工资变量：wage_od
+. 
+.     if "`pivar'" != "" {
+.         display _n "  迁移比例 `pivar' 的分组统计"
+.         table stay, statistic(mean `pivar') statistic(min `pivar') ///
+>               statistic(max `pivar') statistic(count `pivar') nformat(%9.4f)
+.     }
+.     if "`wvar'" != "" {
+.         display _n "  工资 `wvar' 的分组统计"
+
+  工资 wage_od 的分组统计
+.         table stay, statistic(mean `wvar') statistic(count `wvar') nformat(%9
+> .4f)
+
+-------------------------------------------------------
+              |      Mean   Number of nonmissing values
+--------------+----------------------------------------
+stay          |                                        
+  迁移(o≠d)   |  2.90e+05                      312.0000
+  不迁移(o=d) |  1.79e+05                       16.0000
+  Total       |  2.84e+05                      328.0000
+-------------------------------------------------------
+.     }
+. 
+.     display _n "  对角线上的迁移比例（每个省留在本省的比例）"
+
+  对角线上的迁移比例（每个省留在本省的比例）
+.     if "`pivar'" != "" {
+.         list o d `pivar' if o == d, noobs sep(0)
+.     }
+. }
+
+. else {
+.     display "  面板里没有 o / d 变量，实际变量名如下："
+.     describe, short
+. }
+
+. 
+. display _n(2) "{hline 76}"
+
+
+----------------------------------------------------------------------------
+
+. 
+end of do-file

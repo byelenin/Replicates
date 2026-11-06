@@ -1,0 +1,194 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\tab1d_out.log
+  log type:  text
+ opened on:  19 Oct 2026, 16:21:27
+
+. 
+. cd "D:\研一上\微观计量\复现"
+D:\研一上\微观计量\复现
+
+. 
+. use year geo2_id1995 id1995a_bplreg urban perwt using "D:\研一上\微观计量\ipu
+> msi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. count
+  718,837
+
+. 
+. * ---- 注意：这两行 label values 已经删掉了 ----
+. 
+. gen long bcode = id1995a_bplreg
+
+. gen long geo_key = floor(geo2_id1995/1000)*100 + mod(geo2_id1995,100)
+
+. gen byte moved = (geo_key != bcode) if !missing(id1995a_bplreg)
+
+. 
+. preserve
+
+.     keep geo2_id1995 urban perwt
+
+.     bysort geo2_id1995: egen double tot_pop = total(perwt)
+
+.     bysort geo2_id1995: egen double rur_pop = total((urban==1)*perwt)
+
+.     duplicates drop geo2_id1995, force
+
+Duplicates in terms of geo2_id1995
+
+(718,616 observations deleted)
+
+.     count
+  221
+
+.     gen double rshare = rur_pop/tot_pop
+
+.     summarize rshare, detail
+
+                           rshare
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%     .0561367              0       Obs                 221
+25%     .4601601              0       Sum of wgt.         221
+
+50%     .7816971                      Mean           .6530562
+                        Largest       Std. dev.      .3242725
+75%     .8955271              1
+90%     .9364947              1       Variance       .1051527
+95%            1              1       Skewness      -.9867673
+99%            1              1       Kurtosis       2.507886
+
+.     local med = r(p50)
+
+.     display "中位数 = " `med'
+中位数 = .78169712
+
+.     gen byte reg_rural = (rshare > `med')
+
+.     tab reg_rural
+
+  reg_rural |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |        111       50.23       50.23
+          1 |        110       49.77      100.00
+------------+-----------------------------------
+      Total |        221      100.00
+
+.     keep geo2_id1995 reg_rural
+
+.     gen long bcode = floor(geo2_id1995/1000)*100 + mod(geo2_id1995,100)
+
+.     keep bcode reg_rural
+
+.     rename reg_rural o_rural
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+
+.     count
+  221
+
+.     save "tab1_lookup.dta", replace
+file tab1_lookup.dta saved
+
+. restore
+
+. 
+. count
+  718,837
+
+. 
+. merge m:1 bcode using "tab1_lookup.dta", keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                         4,531
+        from master                     4,531  
+        from using                          0  
+
+    Matched                           714,306  
+    -----------------------------------------
+
+. tab o_rural, missing
+
+    o_rural |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    379,937       52.85       52.85
+          1 |    334,369       46.52       99.37
+          . |      4,531        0.63      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+. 
+. gen byte d_rural = (urban == 1)
+
+. 
+. display _n "==== 迁移率 ===="
+
+==== 迁移率 ====
+
+. tab o_rural moved [aw = perwt], row
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |         moved
+   o_rural |         0          1 |     Total
+-----------+----------------------+----------
+         0 | 327,457.1 68,812.908 |   396,270 
+           |     82.63      17.37 |    100.00 
+-----------+----------------------+----------
+         1 | 272,543.6  45,492.38 |   318,036 
+           |     85.70      14.30 |    100.00 
+-----------+----------------------+----------
+     Total | 600,000.7  114,305.3 |   714,306 
+           |     84.00      16.00 |    100.00 
+
+. 
+. display _n "==== 同类内迁移 ===="
+
+==== 同类内迁移 ====
+
+. tab o_rural d_rural if moved == 1 [aw = perwt], row
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+           |        d_rural
+   o_rural |         0          1 |     Total
+-----------+----------------------+----------
+         0 |  53,688.9  23,010.77 | 76,699.67 
+           |     70.00      30.00 |    100.00 
+-----------+----------------------+----------
+         1 | 30,664.24  20,042.09 | 50,706.33 
+           |     60.47      39.53 |    100.00 
+-----------+----------------------+----------
+     Total | 84,353.14  43,052.86 |   127,406 
+           |     66.21      33.79 |    100.00 
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\tab1d_out.log
+  log type:  text
+ closed on:  19 Oct 2026, 16:21:36
+-------------------------------------------------------------------------------

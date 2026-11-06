@@ -1,0 +1,233 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_one_row_out.log
+  log type:  text
+ opened on:  25 Oct 2026, 14:40:14
+
+. 
+. local root "C:\Users\任娜\Documents\deepseek-harness\default-workspace"
+
+. local fz   "D:\研一上\微观计量\复现"
+
+. 
+. * ---- 距离（照搬 Table3US_replication.do 第 1 节）----
+. import delimited "`fz'\us_state_fips2usps.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(2 vars, 51 obs)
+
+. destring state_fips, replace
+state_fips already numeric; no replace
+
+. rename state_fips o
+
+. tempfile f2u
+
+. save `f2u'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_10ec_000001.tmp saved as .dta format
+
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. rename o d
+
+. rename lat_o lat_d
+
+. rename lon lon_d
+
+. tempfile c_d
+
+. save `c_d'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_10ec_000002.tmp saved as .dta format
+
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. tempfile c_o
+
+. save `c_o'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_10ec_000003.tmp saved as .dta format
+
+. use `c_o', clear
+
+. cross using `c_d'
+
+. gen double _pio = _pi/180
+
+. gen double _dla = (lat_d - lat_o)*_pio
+
+. gen double _dlo = (lon_d - lon_o)*_pio
+
+. gen double _a = sin(_dla/2)^2 + cos(lat_o*_pio)*cos(lat_d*_pio)*sin(_dlo/2)^2
+
+. gen double dist_km = 2*6371*asin(min(1, sqrt(_a)))
+
+. keep o d dist_km
+
+. tempfile usdist
+
+. save `usdist'
+file C:\Users\任娜\AppData\Local\Temp\dsh-MdbEjc\ST_10ec_000004.tmp saved as .dta format
+
+. 
+. * ---- 个体 → 州对（照搬第 2 节口径）----
+. insheet using "`root'\usa_od.csv", clear
+(13 vars, 2,333,166 obs)
+
+. gen double hasw = !missing(wage) & wage > 0
+
+. gen double m_w  = w
+
+. gen double n_w  = 1
+
+. gen double wx_w = w*wage if hasw
+(209,617 missing values generated)
+
+. gen double wg_w = w if hasw
+(209,617 missing values generated)
+
+. collapse (sum) m_w n_w wx_w wg_w, by(o d year)
+
+. rename m_w m_od
+
+. rename n_w n_od
+
+. gen double wage_od = wx_w/wg_w if wg_w > 0 & !missing(wg_w)
+(13 missing values generated)
+
+. bysort o year: egen double pop_o = total(m_od)
+
+. gen double pi_od  = m_od/pop_o
+
+. gen double ln_p   = ln(pi_od) if pi_od > 0
+
+. gen double ln_wage = ln(wage_od) if wage_od > 0 & !missing(wage_od)
+(13 missing values generated)
+
+. sort o d
+
+. merge m:1 o d using `usdist', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             5,102  
+    -----------------------------------------
+
+. gen double ln_dist = ln(dist_km)
+(102 missing values generated)
+
+. 
+. display _n(2) "{hline 92}"
+
+
+--------------------------------------------------------------------------------------------
+
+. display "  「一行」到底是什么 —— 以 纽约(36) → 佛罗里达(12) 1990 为例"
+  「一行」到底是什么 —— 以 纽约(36) → 佛罗里达(12) 1990 为例
+
+. display "{hline 92}"
+--------------------------------------------------------------------------------------------
+
+. 
+. display _n "  ① 这一行的原始量"
+
+  ① 这一行的原始量
+
+. list o d year n_od m_od pop_o pi_od wage_od dist_km if o==36 & d==12 & year==1990, ///
+>     noobs sep(0) abbrev(12)
+
+  +-------------------------------------------------------------------------------+
+  |  o    d   year    n_od     m_od     pop_o       pi_od     wage_od     dist_km |
+  |-------------------------------------------------------------------------------|
+  | 36   12   1990   10737   213971   3273500   .06536459   2934.8072   1707.9983 |
+  +-------------------------------------------------------------------------------+
+
+. 
+. display _n "  ② 回归实际吃进去的三个数字（因变量/自变量）"
+
+  ② 回归实际吃进去的三个数字（因变量/自变量）
+
+. display "     列(1) 因变量 = ln_p        列(2)(3)(4) 因变量 = ln_wage"
+     列(1) 因变量 = ln_p        列(2)(3)(4) 因变量 = ln_wage
+
+. display "     自变量 = ln_dist"
+     自变量 = ln_dist
+
+. list o d year ln_p ln_wage ln_dist if o==36 & d==12 & year==1990, noobs sep(0) abbrev(12)
+
+  +----------------------------------------------------+
+  |  o    d   year         ln_p    ln_wage     ln_dist |
+  |----------------------------------------------------|
+  | 36   12   1990   -2.7277745   7.984397   7.4430774 |
+  +----------------------------------------------------+
+
+. 
+. display _n "  ③ 一行 = 一个 (出发州, 目的州, 年份) 三元组"
+
+  ③ 一行 = 一个 (出发州, 目的州, 年份) 三元组
+
+. quietly count
+
+. display "     全部州对行数 = " %10.0fc r(N)
+     全部州对行数 =      5,102
+
+. quietly count if !missing(ln_wage)
+
+. display "     其中有观测工资（列 2/3/4 用）= " %10.0fc r(N)
+     其中有观测工资（列 2/3/4 用）=      5,089
+
+. 
+. display _n "  ④ 加权只改影响力，不改行数：三种加权下 N 完全一样"
+
+  ④ 加权只改影响力，不改行数：三种加权下 N 完全一样
+
+. use `usdist', clear
+
+. display _n(2) "{hline 92}"
+
+
+--------------------------------------------------------------------------------------------
+
+. display "  结束：$S_DATE $S_TIME"
+  结束：25 Oct 2026 14:40:40
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_one_row_out.log
+  log type:  text
+ closed on:  25 Oct 2026, 14:40:40
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

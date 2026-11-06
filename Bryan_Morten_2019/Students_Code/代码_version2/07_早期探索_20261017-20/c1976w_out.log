@@ -1,0 +1,203 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\c1976w_out.log
+  log type:  text
+ opened on:  18 Oct 2026, 18:02:02
+
+. 
+. *--------------------------------------------------------------
+. * A. 1976 工资有效性
+. *--------------------------------------------------------------
+. display "############ A. 1976 工资 ############"
+############ A. 1976 工资 ############
+
+. use incwage perwt relate sex age geo1_id bplid using "D:\研一上\微观计量\ipum
+> si_00003.dta", clear
+
+. 
+. display "----- 全部人：incwage 缺失情况 -----"
+----- 全部人：incwage 缺失情况 -----
+
+. tab incwage if incwage >= 9999990, missing
+
+      wage and salary |
+               income |      Freq.     Percent        Cum.
+----------------------+-----------------------------------
+              unknown |      1,496        0.60        0.60
+niu (not in universe) |    246,686       99.40      100.00
+----------------------+-----------------------------------
+                Total |    248,182      100.00
+
+. 
+. display ""
+
+
+. display "----- 全部人：有效工资 -----"
+----- 全部人：有效工资 -----
+
+. count if !missing(incwage) & incwage < 9999990
+  32,988
+
+. display "  全部有效工资 = " r(N)
+  全部有效工资 = 32988
+
+. 
+. display ""
+
+
+. display "----- 全部人：有效工资的分布 -----"
+----- 全部人：有效工资的分布 -----
+
+. summarize incwage if !missing(incwage) & incwage < 9999990, detail
+
+                   wage and salary income
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%         1000           1000
+ 5%         2000           1000
+10%         3000           1000       Obs              32,988
+25%         5000           1000       Sum of wgt.      32,988
+
+50%        10000                      Mean           15305.54
+                        Largest       Std. dev.      21407.95
+75%        19000         991000
+90%        32000         998000       Variance       4.58e+08
+95%        45000         998000       Skewness       16.13805
+99%        80000         998000       Kurtosis       604.1713
+
+. 
+. display ""
+
+
+. display "----- 男性户主 -----"
+----- 男性户主 -----
+
+. preserve
+
+. keep if relate == 1 & sex == 1
+(233,999 observations deleted)
+
+. count
+  47,171
+
+. display "  1976 男性户主 = " r(N)
+  1976 男性户主 = 47171
+
+. count if !missing(incwage) & incwage < 9999990
+  15,900
+
+. display "  其中有效工资 = " r(N)
+  其中有效工资 = 15900
+
+. summarize incwage if !missing(incwage) & incwage < 9999990
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     incwage |     15,900    21434.34    24036.16       1000     991000
+
+. restore
+
+. 
+. *--------------------------------------------------------------
+. * B. 25 省 pi 矩阵（剔 Papua=94，剔 abroad/unknown）
+. *--------------------------------------------------------------
+. display ""
+
+
+. display "############ B. 1976 的 25 省 pi 矩阵 ############"
+############ B. 1976 的 25 省 pi 矩阵 ############
+
+. use perwt relate sex geo1_id bplid using "D:\研一上\微观计量\ipumsi_00003.dta
+> ", clear
+
+. keep if relate == 1 & sex == 1
+(233,999 observations deleted)
+
+. 
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. 
+. display "剔之前："
+剔之前：
+
+. count
+  47,171
+
+. display "  N = " r(N)
+  N = 47171
+
+. 
+. drop if o == 98 | o == 99
+(548 observations deleted)
+
+. drop if d == 94          // 剔 Papua & Papua Barat（论文脚注 7）
+(992 observations deleted)
+
+. count
+  45,631
+
+. display "  剔 abroad/unknown/Papua 后 N = " r(N)
+  剔 abroad/unknown/Papua 后 N = 45631
+
+. 
+. quietly levelsof d, local(dd)
+
+. display "  目的地省数 = " wordcount("`dd'")
+  目的地省数 = 25
+
+. quietly levelsof o, local(oo)
+
+. display "  出发地省数 = " wordcount("`oo'")
+  出发地省数 = 26
+
+. 
+. display ""
+
+
+. display "----- 25 省：双向都非零的省对（算 tau 需要的）-----"
+----- 25 省：双向都非零的省对（算 tau 需要的）-----
+
+. * 每个 (o,d) 的加权人数
+. preserve
+
+. collapse (sum) n=perwt, by(o d)
+
+. * 标记非零
+. gen byte nz = (n > 0)
+
+. * 自连接判断双向
+. rename o o1
+
+. rename d d1
+
+. rename nz nz1
+
+. tempfile t1
+
+. save `t1'
+file C:\Users\任娜\AppData\Local\Temp\ST_71a4_000003.tmp saved as .dta format
+
+. 
+. use `t1', clear
+
+. rename o1 o2
+
+. rename d1 d2
+
+. rename nz1 nz2
+
+. rename o2 d
+
+. rename d2 o
+
+. rename nz2 nz_other
+
+. merge 1:1 o d using `t1', nogenerate
+variable o not found in using data
+r(111);
+
+end of do-file
+r(111);

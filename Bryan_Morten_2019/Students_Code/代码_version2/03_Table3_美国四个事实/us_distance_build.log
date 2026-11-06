@@ -1,0 +1,271 @@
+
+  ___  ____  ____  ____  ____ ®
+ /__    /   ____/   /   ____/      StataNow 19.5
+___/   /   /___/   /   /___/       MP—Parallel Edition
+
+ Statistics and Data Science       Copyright 1985-2025 StataCorp LLC
+                                   StataCorp
+                                   4905 Lakeway Drive
+                                   College Station, Texas 77845 USA
+                                   800-782-8272        https://www.stata.com
+                                   979-696-4600        service@stata.com
+
+Stata license: Unlimited-user 2-core network, expiring  8 Apr 2027
+Serial number: 501909302397
+  Licensed to: NJUsxy
+               NJU
+
+Notes:
+      1. Stata is running in batch mode.
+      2. Unicode is supported; see help unicode_advice.
+      3. More than 2 billion observations are allowed; see help obs_advice.
+      4. Maximum number of variables is set to 5,000 but can be increased;
+          see help set_maxvar.
+
+. do _build_us_dist.do 
+
+. *============================================================================
+> ==
+. *  生成【现成的】美国州间距离表  us_state_distance.csv
+. *  公式与 Table3US_replication.do L85-L89 逐字一致（Haversine, R=6371 km）
+. *  输入：us_state_centroids.csv（州面积加权质心）+ us_state_fips2usps.csv
+. *  输出：usps_o, o, usps_d, d, dist_km      （删掉同州 o=d，与 L172 一致）
+. *============================================================================
+> ==
+. clear all
+
+. set linesize 150
+
+. local fz "D:\研一上\微观计量\复现"
+
+. local out "C:\Users\任娜\Documents\deepseek-harness\default-workspace\us_state_distance.csv"
+
+. 
+. * ---------- 1. FIPS <-> USPS 对照 ----------
+. import delimited "`fz'\us_state_fips2usps.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(2 vars, 51 obs)
+
+. destring state_fips, replace
+state_fips already numeric; no replace
+
+. rename state_fips o
+
+. tempfile f2u
+
+. save `f2u'
+file C:\Users\任娜\AppData\Local\Temp\dsh-Fbei4T\ST_113c_000001.tmp saved as .dta format
+
+. quietly count
+
+. display _n "===== 1. FIPS↔USPS 对照表：`r(N)' 行 ====="
+
+===== 1. FIPS↔USPS 对照表：51 行 =====
+
+. 
+. * ---------- 2. 目的地质心 ----------
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. rename usps usps_d
+
+. rename o d
+
+. rename lat lat_d
+
+. rename lon lon_d
+
+. keep usps_d d lat_d lon_d
+
+. tempfile c_d
+
+. save `c_d'
+file C:\Users\任娜\AppData\Local\Temp\dsh-Fbei4T\ST_113c_000002.tmp saved as .dta format
+
+. quietly count
+
+. display "  目的地质心：`r(N)' 个州"
+  目的地质心：51 个州
+
+. 
+. * ---------- 3. 出发地质心 ----------
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. rename usps usps_o
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. keep usps_o o lat_o lon_o
+
+. tempfile c_o
+
+. save `c_o'
+file C:\Users\任娜\AppData\Local\Temp\dsh-Fbei4T\ST_113c_000003.tmp saved as .dta format
+
+. quietly count
+
+. display "  出发地质心：`r(N)' 个州"
+  出发地质心：51 个州
+
+. 
+. * ---------- 4. 全州对 + Haversine（照抄 L85-L89）----------
+. use `c_o', clear
+
+. cross using `c_d'
+
+. quietly count
+
+. display _n "===== 2. 全部州对（含同州）：`r(N)' 对 ====="
+
+===== 2. 全部州对（含同州）：2601 对 =====
+
+. 
+. gen double _pio = _pi/180
+
+. gen double _dla = (lat_d - lat_o)*_pio
+
+. gen double _dlo = (lon_d - lon_o)*_pio
+
+. gen double _a   = sin(_dla/2)^2 + cos(lat_o*_pio)*cos(lat_d*_pio)*sin(_dlo/2)^2
+
+. gen double dist_km = 2*6371*asin(min(1, sqrt(_a)))
+
+. drop _pio _dla _dlo _a
+
+. 
+. * ---------- 5. 删同州（与 Table3US_replication.do L172 一致）----------
+. quietly count if dist_km == 0
+
+. display "  同州（距离=0）对数：`r(N)'  → 删除"
+  同州（距离=0）对数：51  → 删除
+
+. keep if dist_km > 0
+(51 observations deleted)
+
+. order usps_o o usps_d d dist_km
+
+. sort o d
+
+. quietly count
+
+. display _n "===== 3. 最终州对：`r(N)' 对（应为 州数×(州数−1)）====="
+
+===== 3. 最终州对：2550 对（应为 州数×(州数−1)）=====
+
+. 
+. * ---------- 6. 体检 ----------
+. quietly summarize dist_km
+
+. display _n "  dist_km  min = " %10.3f r(min) "   max = " %10.1f r(max) "   均值 = " %10.1f r(mean)
+
+  dist_km  min =     24.101   max =     8204.0   均值 =     1956.7
+
+. 
+. * 对称性：A→B 与 B→A 必须相等
+. preserve
+
+.     keep o d dist_km
+
+.     rename o oa
+
+.     rename d da
+
+.     rename dist_km dist_a
+
+.     tempfile fwd
+
+.     save `fwd'
+file C:\Users\任娜\AppData\Local\Temp\dsh-Fbei4T\ST_113c_000005.tmp saved as .dta format
+
+. restore
+
+. preserve
+
+.     keep o d dist_km
+
+.     rename o da
+
+.     rename d oa
+
+.     rename dist_km dist_b
+
+.     merge 1:1 oa da using `fwd', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,550  
+    -----------------------------------------
+
+.     gen double asym = abs(dist_a - dist_b)
+
+.     quietly summarize asym
+
+.     display "  对称性检验 |A→B − B→A| 最大值 = " %12.4e r(max)
+  对称性检验 |A→B − B→A| 最大值 =   0.0000e+00
+
+. restore
+
+. 
+. * 抽查若干已知州对
+. display _n "  抽查："
+
+  抽查：
+
+. foreach p in "6 36" "48 36" "17 36" "12 13" {
+  2.     local a : word 1 of `p'
+  3.     local b : word 2 of `p'
+  4.     quietly summarize dist_km if o == `a' & d == `b', meanonly
+  5.     if r(N) > 0 {
+  6.         display "     FIPS `a' → `b' ： " %10.1f r(mean) " km"
+  7.     }
+  8. }
+     FIPS 6 → 36 ：     3743.1 km
+     FIPS 48 → 36 ：     2450.1 km
+     FIPS 17 → 36 ：     1179.0 km
+     FIPS 12 → 13 ：      454.1 km
+
+. 
+. * ---------- 7. 导出 ----------
+. export delimited usps_o o usps_d d dist_km using "`out'", replace
+(file C:\Users\任娜\Documents\deepseek-harness\default-workspace\us_state_distance.csv not found)
+file C:\Users\任娜\Documents\deepseek-harness\default-workspace\us_state_distance.csv saved
+
+. display _n "  已导出：`out'"
+
+  已导出：C:\Users\任娜\Documents\deepseek-harness\default-workspace\us_state_distance.csv
+
+. capture confirm file "`out'"
+
+. if _rc == 0 {
+.     display "  文件大小：待外部确认"
+  文件大小：待外部确认
+. }
+
+. 
+end of do-file

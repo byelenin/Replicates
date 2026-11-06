@@ -1,0 +1,49 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_replication\stata\timing_out.log
+  log type:  text
+ opened on:  17 Oct 2026, 23:44:47
+
+. 
+. timer clear
+
+. 
+. timer on 1
+
+. use year perwt hhwt geo1_id bplid relate sex age incwage geo2_id geo2_id1995 id1995a_bplreg ///
+>     using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. timer off 1
+
+. 
+. timer on 2
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. timer off 2
+
+. 
+. count
+  718,837
+
+. describe, short
+
+Contains data from D:\研一上\微观计量\ipumsi_00002.dta
+ Observations:       718,837                  
+    Variables:            12                  17 OCT 2026 08:13
+Sorted by: 
+     Note: Dataset has changed since last saved.
+
+. 
+. timer list
+   1:      5.51 /        1 =       5.5150
+   2:      1.51 /        1 =       1.5090
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_replication\stata\timing_out.log
+  log type:  text
+ closed on:  17 Oct 2026, 23:44:54
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

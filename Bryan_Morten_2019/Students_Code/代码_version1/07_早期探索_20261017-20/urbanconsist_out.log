@@ -1,0 +1,116 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\urbanconsist_out.log
+  log type:  text
+ opened on:  20 Oct 2026, 09:36:51
+
+. 
+. use year serial urban geo2_id1995 using "D:\研一上\微观计量\ipumsi_00002.dta"
+> , clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. 
+. display _n "==== 1. urban 的取值分布（有没有 unknown）===="
+
+==== 1. urban 的取值分布（有没有 unknown）====
+
+. tab urban
+
+urban-rural |
+     status |      Freq.     Percent        Cum.
+------------+-----------------------------------
+      rural |    436,183       60.68       60.68
+      urban |    282,654       39.32      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+. 
+. display _n "==== 2. 家庭数 ===="
+
+==== 2. 家庭数 ====
+
+. codebook serial, compact
+
+Variable      Obs Unique      Mean   Min       Max  Label
+-------------------------------------------------------------------------------
+serial     718837 166033  8.19e+07  1000  1.66e+08  household serial number
+-------------------------------------------------------------------------------
+
+. 
+. display _n "==== 3. 同一家庭内 urban 是否全部相同 ===="
+
+==== 3. 同一家庭内 urban 是否全部相同 ====
+
+. bysort serial: gen byte same = (urban == urban[1])
+
+. bysort serial: egen byte allsame = min(same)
+
+. label var allsame "全家 urban 都相同"
+
+. tab allsame
+
+       全家 |
+      urban |
+     都相同 |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |    718,837      100.00      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+. 
+. display _n "==== 4. urban 不一致的家庭数 ===="
+
+==== 4. urban 不一致的家庭数 ====
+
+. count if allsame == 0
+  0
+
+. 
+. display _n "==== 5. 每个县内，urban 是否既有 1 又有 2（说明县内分村）===="
+
+==== 5. 每个县内，urban 是否既有 1 又有 2（说明县内分村）====
+
+. preserve
+
+.     keep geo2_id1995 urban
+
+.     bysort geo2_id1995: egen byte has_rural = min(urban == 1)
+
+.     bysort geo2_id1995: egen byte has_urban = max(urban == 2)
+
+.     duplicates drop geo2_id1995, force
+
+Duplicates in terms of geo2_id1995
+
+(718,616 observations deleted)
+
+.     gen byte mixed = has_rural & has_urban
+
+.     label var mixed "这个县里既有农村居民又有城市居民"
+
+.     tab mixed
+
+     这个县 |
+     里既有 |
+     农村居 |
+     民又有 |
+     城市居 |
+         民 |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |        221      100.00      100.00
+------------+-----------------------------------
+      Total |        221      100.00
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\urbanconsist_out.log
+  log type:  text
+ closed on:  20 Oct 2026, 09:37:16
+-------------------------------------------------------------------------------

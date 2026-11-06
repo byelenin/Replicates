@@ -1,0 +1,76 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_replication\stata\desc00002_out.log
+  log type:  text
+ opened on:  17 Oct 2026, 22:16:22
+
+. 
+. display "===== ipumsi_00002.dta 变量清单 ====="
+===== ipumsi_00002.dta 变量清单 =====
+
+. describe using "D:\研一上\微观计量\ipumsi_00002.dta"
+
+Contains data                                 
+ Observations:    24,321,886                  17 OCT 2026 08:13
+    Variables:            37                  
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+country         int     %8.0g      COUNTRY    country
+year            int     %8.0g      YEAR       year
+sample          long    %12.0g     SAMPLE     ipums sample identifier
+serial          double  %12.0g                household serial number
+hhwt            int     %8.0g                 household weight
+urban           byte    %8.0g      URBAN      urban-rural status
+geo1_id         long    %12.0g     GEO1_ID    indonesia, province 1971 - 2010 [level 1; consistent boundaries, gis]
+geo2_id         long    %12.0g     GEO2_ID    indonesia, regency 1971 - 2010 [level 2; consistent boundaries, gis]
+geo2_id1995     long    %12.0g     GEO2_ID1995
+                                              indonesia, regency 1995 [level 2, gis]
+pernum          byte    %8.0g                 person number
+perwt           int     %8.0g                 person weight
+relate          byte    %8.0g      RELATE     relationship to household head [general version]
+related         int     %8.0g      RELATED    relationship to household head [detailed version]
+age             byte    %8.0g      AGE        age
+sex             byte    %8.0g      SEX        sex
+bplid           byte    %8.0g      BPLID      province of birth, indonesia
+edattain        byte    %8.0g      EDATTAIN   educational attainment, international recode [general version]
+edattaind       int     %8.0g      EDATTAIND
+                                              educational attainment, international recode [detailed version]
+yrschool        byte    %8.0g      YRSCHOOL   years of schooling
+educid          int     %8.0g      EDUCID     educational attainment, indonesia
+empstat         byte    %8.0g      EMPSTAT    activity status (employment status) [general version]
+empstatd        int     %8.0g      EMPSTATD   activity status (employment status) [detailed version]
+labforce        byte    %8.0g      LABFORCE   labor force participation
+classwk         byte    %8.0g      CLASSWK    status in employment (class of worker) [general version]
+classwkd        int     %8.0g      CLASSWKD   status in employment (class of worker) [detailed version]
+hrswork1        int     %8.0g      HRSWORK1   hours worked per week
+occisco         byte    %8.0g      OCCISCO    occupation, isco general
+indgen          int     %8.0g      INDGEN     industry, general recode
+incwage         long    %12.0g     INCWAGE    wage and salary income
+mig1_p_id       long    %12.0g     MIG1_P_ID
+                                              province of previous residence, indonesia; consistent boundaries, gis
+mig1_5_id       long    %12.0g     MIG1_5_ID
+                                              province of residence 5 years ago, indonesia; consistent boundaries, gis
+mig2_5_id       long    %12.0g     MIG2_5_ID
+                                              regency of residence 5 years ago, indonesia; consistent boundaries, gis
+id1995a_bplreg  int     %8.0g      ID1995A_BPLREG
+                                              regency/municipality of birth
+id1995a_prevprov
+                byte    %8.0g      ID1995A_PREVPROV
+                                              province of previous residence
+id1995a_prevreg int     %8.0g      ID1995A_PREVREG
+                                              regency/municipality of previous residence
+id1995a_salcash long    %12.0g                average monthly salary (money - rp)
+id1995a_salgoods
+                long    %12.0g                average monthly salary (value of goods - rp)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Sorted by: 
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_replication\stata\desc00002_out.log
+  log type:  text
+ closed on:  17 Oct 2026, 22:16:22
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

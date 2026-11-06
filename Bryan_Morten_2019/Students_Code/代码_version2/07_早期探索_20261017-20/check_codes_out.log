@@ -1,0 +1,307 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_replication\stata\check_codes_out.log
+  log type:  text
+ opened on:  17 Oct 2026, 21:53:48
+
+. 
+. use year perwt geo2_id geo2_id1995 id1995a_bplreg relate sex incwage ///
+>     using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. 
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. count
+  718,837
+
+. 
+. * ---------- A. geo2_id 与 geo2_id1995 的关系 ----------
+. display _n "===== A. geo2_id 减 360000000 后 是否等于 geo2_id1995 ====="
+
+===== A. geo2_id 减 360000000 后 是否等于 geo2_id1995 =====
+
+. 
+. gen long d95 = geo2_id - 360000000
+
+. count if d95 != geo2_id1995
+  384,331
+
+. display "  不相等 的观测数 = " r(N)
+  不相等 的观测数 = 384331
+
+. count
+  718,837
+
+. display "  总观测数     = " r(N)
+  总观测数     = 718837
+
+. 
+. display _n "  抽查前 15 个不同的取值组合："
+
+  抽查前 15 个不同的取值组合：
+
+. preserve
+
+.     keep geo2_id geo2_id1995
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(718,616 observations deleted)
+
+.     sort geo2_id
+
+.     list geo2_id geo2_id1995 in 1/15, noobs
+
+  +-----------------------------+
+  |      geo2_id    geo2_id1995 |
+  |-----------------------------|
+  | simeulue, ac      west aceh |
+  | aceh singkil     south aceh |
+  | aceh tenggar   southeast ac |
+  | aceh tenggar   central aceh |
+  | aceh tamiang      east aceh |
+  |-----------------------------|
+  |   aceh besar     great aceh |
+  | pidie, pidie          pidie |
+  | bireuen, kot     aceh utara |
+  | kota banda a     banda aceh |
+  |  kota sabang         sabang |
+  |-----------------------------|
+  | nias, nias s           nias |
+  | mandailing n   south tapanu |
+  | tapanuli ten   central tapa |
+  | tapanuli uta   north tapanu |
+  | labuhan batu   labuhan batu |
+  +-----------------------------+
+
+. restore
+
+. 
+. 
+. * ---------- B. id1995a_bplreg 与 geo2_id1995 的对照 ----------
+. display _n "===== B. id1995a_bplreg 与 geo2_id1995 并排看 ====="
+
+===== B. id1995a_bplreg 与 geo2_id1995 并排看 =====
+
+. 
+. preserve
+
+.     keep id1995a_bplreg geo2_id1995
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(704,293 observations deleted)
+
+.     sort id1995a_bplreg
+
+.     count
+  14,544
+
+.     display "  不同的 (bplreg, geo2_id1995) 组合数 = " r(N)
+  不同的 (bplreg, geo2_id1995) 组合数 = 14544
+
+.     display _n "  前 30 个组合："
+
+  前 30 个组合：
+
+.     list id1995a_bplreg geo2_id1995 in 1/30, noobs
+
+  +-------------------------+
+  | id1995~g    geo2_id1995 |
+  |-------------------------|
+  | south ac      east aceh |
+  | south ac   south jakart |
+  | south ac     banda aceh |
+  | south ac   banjarnegara |
+  | south ac   labuhan batu |
+  |-------------------------|
+  | south ac     great aceh |
+  | south ac   pematang sia |
+  | south ac          batam |
+  | south ac   north jakart |
+  | south ac   tebing tingg |
+  |-------------------------|
+  | south ac        sibolga |
+  | south ac    sawah lunto |
+  | south ac     south aceh |
+  | south ac   east jakarta |
+  | south ac       surabaya |
+  |-------------------------|
+  | south ac      bengkalis |
+  | south ac         sabang |
+  | south ac      west aceh |
+  | south ac          medan |
+  | south ac        langkat |
+  |-------------------------|
+  | south ac           karo |
+  | south ac         asahan |
+  | south ac         binjai |
+  | south ac     aceh utara |
+  | south ac   tegal, regen |
+  |-------------------------|
+  | south ac          dairi |
+  | south ac      palembang |
+  | south ac   central aceh |
+  | south ac   southeast ac |
+  | south ac   tangerang, c |
+  +-------------------------+
+
+. restore
+
+. 
+. 
+. * ---------- C. 尝试把 4 位转成 5 位 ----------
+. display _n "===== C. 4位 -> 5位 转换尝试 ====="
+
+===== C. 4位 -> 5位 转换尝试 =====
+
+. 
+. gen long bpl5 = int(id1995a_bplreg/100)*1000 + mod(id1995a_bplreg,100)
+
+. label var bpl5 "id1995a_bplreg 按 省(2)+县(2) 转成 省(2)+县(3)"
+
+. 
+. count if bpl5 == geo2_id1995
+  586,900
+
+. display "  转换后 bpl5 == geo2_id1995 的观测数 = " r(N)
+  转换后 bpl5 == geo2_id1995 的观测数 = 586900
+
+. count
+  718,837
+
+. display "  总观测数 = " r(N)
+  总观测数 = 718837
+
+. 
+. display _n "  转换后仍不匹配的，抽查一下："
+
+  转换后仍不匹配的，抽查一下：
+
+. preserve
+
+.     keep id1995a_bplreg bpl5 geo2_id1995
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(704,293 observations deleted)
+
+.     sort id1995a_bplreg
+
+.     list id1995a_bplreg bpl5 geo2_id1995 in 1/30, noobs
+
+  +---------------------------------+
+  | id1995~g    bpl5    geo2_id1995 |
+  |---------------------------------|
+  | south ac   11001   labuhan batu |
+  | south ac   11001   central aceh |
+  | south ac   11001   pematang sia |
+  | south ac   11001         asahan |
+  | south ac   11001          batam |
+  |---------------------------------|
+  | south ac   11001        langkat |
+  | south ac   11001    sawah lunto |
+  | south ac   11001     south aceh |
+  | south ac   11001         sabang |
+  | south ac   11001   south jakart |
+  |---------------------------------|
+  | south ac   11001      palembang |
+  | south ac   11001        sibolga |
+  | south ac   11001   southeast ac |
+  | south ac   11001   tebing tingg |
+  | south ac   11001         binjai |
+  |---------------------------------|
+  | south ac   11001     banda aceh |
+  | south ac   11001   banjarnegara |
+  | south ac   11001          dairi |
+  | south ac   11001   padang panja |
+  | south ac   11001   tangerang, c |
+  |---------------------------------|
+  | south ac   11001      east aceh |
+  | south ac   11001       surabaya |
+  | south ac   11001   sawahlunto/s |
+  | south ac   11001   tegal, regen |
+  | south ac   11001     aceh utara |
+  |---------------------------------|
+  | south ac   11001      west aceh |
+  | south ac   11001     great aceh |
+  | south ac   11001           karo |
+  | south ac   11001      bengkalis |
+  | south ac   11001   north jakart |
+  +---------------------------------+
+
+. restore
+
+. 
+. 
+. * ---------- D. 最要紧的问题：有没有「原地不动」的人 ----------
+. display _n "===== D. 非迁移者的识别情况 ====="
+
+===== D. 非迁移者的识别情况 =====
+
+. 
+. * 用转换后的 bpl5 去配 geo2_id1995
+. count if bpl5 == geo2_id1995
+  586,900
+
+. display "  用 bpl5  --- 出生县 == 现居县 的人 = " r(N)
+  用 bpl5  --- 出生县 == 现居县 的人 = 586900
+
+. 
+. * 用原始 geo2_id1995 当出生地的代理，看对角线
+. * （先确认 id1995a_bplreg 的最前面几位是否就是省）
+. gen int prov_o = int(id1995a_bplreg/100)
+
+. gen int prov_d = int(geo2_id1995/1000)
+
+. 
+. display _n "  出生省 与 现居省 是否一致（这是能对上的）："
+
+  出生省 与 现居省 是否一致（这是能对上的）：
+
+. count if prov_o == prov_d
+  644,108
+
+. display "  同省 = " r(N)
+  同省 = 644108
+
+. 
+. display _n "  id1995a_bplreg 的省码取值范围："
+
+  id1995a_bplreg 的省码取值范围：
+
+. summarize prov_o
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+      prov_o |    718,837     30.5241    13.12426         11         96
+
+. display _n "  geo2_id1995 的省码取值范围："
+
+  geo2_id1995 的省码取值范围：
+
+. summarize prov_d
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+      prov_d |    718,837    30.03503    12.77279         11         54
+
+. 
+. display _n "===== 诊断完成 ====="
+
+===== 诊断完成 =====
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_replication\stata\check_codes_out.log
+  log type:  text
+ closed on:  17 Oct 2026, 21:53:58
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

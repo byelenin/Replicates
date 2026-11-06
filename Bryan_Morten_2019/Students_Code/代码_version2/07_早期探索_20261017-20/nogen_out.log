@@ -1,0 +1,206 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\nogen_out.log
+  log type:  text
+ opened on:  20 Oct 2026, 20:57:26
+
+. 
+. * ---------- 造两份小数据 ----------
+. clear
+
+. input long bcode byte urban
+
+            bcode     urban
+  1. 1101 1
+  2. 1101 2
+  3. 1102 1
+  4. 1105 2
+  5. 1105 1
+  6. 9999 1
+  7. end
+
+. tempfile master
+
+. save `master'
+file C:\Users\任娜\AppData\Local\Temp\dsh-esAdBR\ST_4928_000001.tmp saved as
+    .dta format
+
+. 
+. clear
+
+. input long bcode byte o_rural
+
+            bcode   o_rural
+  1. 1101 0
+  2. 1102 1
+  3. 1105 0
+  4. end
+
+. tempfile look
+
+. save `look'
+file C:\Users\任娜\AppData\Local\Temp\dsh-esAdBR\ST_4928_000002.tmp saved as
+    .dta format
+
+. 
+. display _n "==== A. 不加 keep、不加 nogen ===="
+
+==== A. 不加 keep、不加 nogen ====
+
+. use `master', clear
+
+. merge m:1 bcode using `look'
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             1
+        from master                         1  (_merge==1)
+        from using                          0  (_merge==2)
+
+    Matched                                 5  (_merge==3)
+    -----------------------------------------
+
+. display _n "---- 变量列表 ----"
+
+---- 变量列表 ----
+
+. describe, short
+
+Contains data from C:\Users\任娜\AppData\Local\Temp\dsh-esAdBR\ST_4928_000001.t
+> mp
+ Observations:             6                  
+    Variables:             4                  20 Oct 2026 20:57
+Sorted by: 
+     Note: Dataset has changed since last saved.
+
+. display _n "---- tab _merge ----"
+
+---- tab _merge ----
+
+. tab _merge
+
+   Matching result from |
+                  merge |      Freq.     Percent        Cum.
+------------------------+-----------------------------------
+        Master only (1) |          1       16.67       16.67
+            Matched (3) |          5       83.33      100.00
+------------------------+-----------------------------------
+                  Total |          6      100.00
+
+. display _n "---- 数据 ----"
+
+---- 数据 ----
+
+. list, sepby(bcode)
+
+     +-------------------------------------------+
+     | bcode   urban   o_rural            _merge |
+     |-------------------------------------------|
+  1. |  1101       1         0       Matched (3) |
+  2. |  1101       2         0       Matched (3) |
+     |-------------------------------------------|
+  3. |  1102       1         1       Matched (3) |
+     |-------------------------------------------|
+  4. |  1105       2         0       Matched (3) |
+  5. |  1105       1         0       Matched (3) |
+     |-------------------------------------------|
+  6. |  9999       1         .   Master only (1) |
+     +-------------------------------------------+
+
+. 
+. display _n "==== B. 加 keep(master match)，不加 nogen ===="
+
+==== B. 加 keep(master match)，不加 nogen ====
+
+. use `master', clear
+
+. merge m:1 bcode using `look', keep(master match)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             1
+        from master                         1  (_merge==1)
+        from using                          0  (_merge==2)
+
+    Matched                                 5  (_merge==3)
+    -----------------------------------------
+
+. display _n "---- tab _merge ----"
+
+---- tab _merge ----
+
+. tab _merge
+
+   Matching result from |
+                  merge |      Freq.     Percent        Cum.
+------------------------+-----------------------------------
+        Master only (1) |          1       16.67       16.67
+            Matched (3) |          5       83.33      100.00
+------------------------+-----------------------------------
+                  Total |          6      100.00
+
+. 
+. display _n "==== C. 加 keep(master match) 和 nogen ===="
+
+==== C. 加 keep(master match) 和 nogen ====
+
+. use `master', clear
+
+. merge m:1 bcode using `look', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             1
+        from master                         1  
+        from using                          0  
+
+    Matched                                 5  
+    -----------------------------------------
+
+. capture confirm variable _merge
+
+. display "变量 _merge 是否存在？ _rc = " _rc "   （111 = 不存在）"
+变量 _merge 是否存在？ _rc = 111   （111 = 不存在）
+
+. display _n "---- 变量列表 ----"
+
+---- 变量列表 ----
+
+. describe, short
+
+Contains data from C:\Users\任娜\AppData\Local\Temp\dsh-esAdBR\ST_4928_000001.t
+> mp
+ Observations:             6                  
+    Variables:             3                  20 Oct 2026 20:57
+Sorted by: 
+     Note: Dataset has changed since last saved.
+
+. display _n "---- 数据（o_rural 还在！）----"
+
+---- 数据（o_rural 还在！）----
+
+. list, sepby(bcode)
+
+     +-------------------------+
+     | bcode   urban   o_rural |
+     |-------------------------|
+  1. |  1101       1         0 |
+  2. |  1101       2         0 |
+     |-------------------------|
+  3. |  1102       1         1 |
+     |-------------------------|
+  4. |  1105       2         0 |
+  5. |  1105       1         0 |
+     |-------------------------|
+  6. |  9999       1         . |
+     +-------------------------+
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\nogen_out.log
+  log type:  text
+ closed on:  20 Oct 2026, 20:57:26
+-------------------------------------------------------------------------------

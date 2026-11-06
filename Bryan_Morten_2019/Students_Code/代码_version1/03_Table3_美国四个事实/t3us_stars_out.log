@@ -1,0 +1,158 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3us_stars_out.log
+  log type:  text
+ opened on:  24 Oct 2026, 22:18:40
+
+. 
+. display _n(2) "{hline 96}"
+
+
+------------------------------------------------------------------------------------------------
+
+. display "  Table 3（美国）各口径的系数与标准误 —— 供 PPT 加星号"
+  Table 3（美国）各口径的系数与标准误 —— 供 PPT 加星号
+
+. display "{hline 96}"
+------------------------------------------------------------------------------------------------
+
+. 
+. capture program drop _both
+
+. program define _both
+  1.     args dep rhs wt useif vn lab
+  2.     local wo ""
+  3.     if "`wt'" != "NONE" local wo "[aw=`wt']"
+  4.     local uf ""
+  5.     if "`useif'" != "ALL" local uf "`useif'"
+  6.     capture quietly reghdfe `dep' `rhs' `wo' `uf', absorb(oyear dyear) vce(cluster oyear dyear)
+  7.     local b = _b[`vn']
+  8.     local s = _se[`vn']
+  9.     local flag ""
+ 10.     if missing(`s') | `s' <= 0 {
+ 11.         capture quietly reghdfe `dep' `rhs' `wo' `uf', absorb(oyear dyear) vce(cluster oyear)
+ 12.         local s = _se[`vn']
+ 13.         local flag "   [二维VCV非正定 → 改一维聚类 cluster(oyear)]"
+ 14.     }
+ 15.     local t = `b'/`s'
+ 16.     local st ""
+ 17.     if abs(`t') > 2.576      local st "***"
+ 18.     else if abs(`t') > 1.96  local st "**"
+ 19.     else if abs(`t') > 1.645 local st "*"
+ 20.     display "   `lab'   b = " %10.4f `b' "   SE = " %9.4f `s' "   t = " %8.2f `t' "  `st'`flag'"
+ 21. end
+
+. 
+. capture program drop _block
+
+. program define _block
+  1.     args pan tag wt yf
+  2.     display _n "  ===== 口径：`tag' ====="
+  3.     use `pan', clear
+  4.     if "`yf'" != "NONE" keep if year == `yf'
+  5.     _both ln_p    "ln_dist"      "`wt'" "ALL"                  ln_dist "    (1) ln_dist → ln p "
+  6.     _both ln_wage "ln_dist"      "`wt'" "if !missing(ln_wage)" ln_dist "    (2) ln_dist → ln w "
+  7.     _both ln_wage "ln_dist ln_p" "`wt'" "if !missing(ln_wage)" ln_dist "    (3) ln_dist → ln w "
+  8.     _both ln_wage "ln_dist ln_p" "`wt'" "if !missing(ln_wage)" ln_p    "    (3) ln_p    → ln w "
+  9.     _both ln_wage "ln_p"         "`wt'" "if !missing(ln_wage)" ln_p    "    (4) ln_p    → ln w "
+ 10. end
+
+. 
+. * ---- 主口径 ----
+. _block `uspanel' "主口径  n_od 加权（全样本 1990+2010）" "n_od" "NONE"
+
+  ===== 口径：主口径  n_od 加权（全样本 1990+2010） =====
+       (1) ln_dist → ln p    b =    -1.1771   SE =    0.0616   t =   -19.12  ***
+       (2) ln_dist → ln w    b =     0.0302   SE =    0.0064   t =     4.69  ***
+       (3) ln_dist → ln w    b =    -0.0222   SE =    0.0124   t =    -1.79  *
+       (3) ln_p    → ln w    b =    -0.0445   SE =    0.0084   t =    -5.27  ***
+       (4) ln_p    → ln w    b =    -0.0309   SE =    0.0043   t =    -7.12  ***
+
+. 
+. * ---- 三种加权对比 ----
+. _block `uspanel' "按人口权重和 m_od" "m_od" "NONE"
+
+  ===== 口径：按人口权重和 m_od =====
+       (1) ln_dist → ln p    b =    -1.1461   SE =    0.0532   t =   -21.56  ***
+       (2) ln_dist → ln w    b =     0.0299   SE =    0.0045   t =     6.61  ***   [二维VCV非正定 → 改一维聚类 cluster(oyear)]
+       (3) ln_dist → ln w    b =    -0.0152   SE =    0.0111   t =    -1.37  
+       (3) ln_p    → ln w    b =    -0.0394   SE =    0.0077   t =    -5.11  ***
+       (4) ln_p    → ln w    b =    -0.0299   SE =    0.0029   t =   -10.36  ***   [二维VCV非正定 → 改一维聚类 cluster(oyear)]
+
+. _block `uspanel' "不加权（州对等权）" "NONE" "NONE"
+
+  ===== 口径：不加权（州对等权） =====
+       (1) ln_dist → ln p    b =    -1.2378   SE =    0.0454   t =   -27.28  ***
+       (2) ln_dist → ln w    b =     0.0037   SE =    0.0053   t =     0.70     [二维VCV非正定 → 改一维聚类 cluster(oyear)]
+       (3) ln_dist → ln w    b =     0.0076   SE =    0.0175   t =     0.43  
+       (3) ln_p    → ln w    b =     0.0032   SE =    0.0148   t =     0.22  
+       (4) ln_p    → ln w    b =    -0.0010   SE =    0.0073   t =    -0.13  
+
+. 
+. * ---- 分年 ----
+. _block `uspanel' "仅 1990" "n_od" "1990"
+
+  ===== 口径：仅 1990 =====
+(2,458 observations deleted)
+       (1) ln_dist → ln p    b =    -1.1916   SE =    0.0733   t =   -16.26  ***
+       (2) ln_dist → ln w    b =     0.0292   SE =    0.0066   t =     4.40  ***   [二维VCV非正定 → 改一维聚类 cluster(oyear)]
+       (3) ln_dist → ln w    b =    -0.0271   SE =    0.0146   t =    -1.86  *
+       (3) ln_p    → ln w    b =    -0.0473   SE =    0.0097   t =    -4.88  ***
+       (4) ln_p    → ln w    b =    -0.0309   SE =    0.0050   t =    -6.21  ***
+
+. _block `uspanel' "仅 2010" "n_od" "2010"
+
+  ===== 口径：仅 2010 =====
+(2,542 observations deleted)
+       (1) ln_dist → ln p    b =    -1.1000   SE =    0.0756   t =   -14.55  ***
+       (2) ln_dist → ln w    b =     0.0351   SE =    0.0077   t =     4.57  ***
+       (3) ln_dist → ln w    b =     0.0025   SE =    0.0152   t =     0.17  
+       (3) ln_p    → ln w    b =    -0.0296   SE =    0.0117   t =    -2.53  **
+       (4) ln_p    → ln w    b =    -0.0313   SE =    0.0062   t =    -5.02  ***
+
+. 
+. * ---- 列(1) 的分母口径 ----
+. display _n "  ===== 列(1) 分母口径（均 n_od 加权）====="
+
+  ===== 列(1) 分母口径（均 n_od 加权）=====
+
+. use `uspanel', clear
+
+. capture drop p_share_o p_share_d p_share_all p_raw
+
+. gen double p_share_o   = m_od/pop_o    if pop_o > 0
+
+. gen double p_share_d   = m_od/m_in_d   if m_in_d > 0
+
+. gen double p_share_all = m_od/pop_all  if pop_all > 0
+
+. gen double p_raw       = m_od
+
+. foreach vn in p_share_o p_share_d p_share_all p_raw {
+  2.     capture drop _lnpv
+  3.     capture quietly gen double _lnpv = ln(`vn') if `vn' > 0
+  4.     _both _lnpv "ln_dist" "n_od" "ALL" ln_dist "    ln(`vn') → ln p "
+  5. }
+       ln(p_share_o) → ln p    b =    -1.1771   SE =    0.0616   t =   -19.12  ***
+       ln(p_share_d) → ln p    b =    -1.1771   SE =    0.0616   t =   -19.12  ***
+       ln(p_share_all) → ln p    b =    -1.1771   SE =    0.0616   t =   -19.12  ***
+       ln(p_raw) → ln p    b =    -1.1771   SE =    0.0477   t =   -24.69  ***   [二维VCV非正定 → 改一维聚类 cluster(oyear)]
+
+. 
+. display _n(2) "{hline 96}"
+
+
+------------------------------------------------------------------------------------------------
+
+. display "  结束：$S_DATE $S_TIME"
+  结束：24 Oct 2026 22:18:44
+
+. display "{hline 96}"
+------------------------------------------------------------------------------------------------
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3us_stars_out.log
+  log type:  text
+ closed on:  24 Oct 2026, 22:18:44
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

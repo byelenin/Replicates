@@ -1,0 +1,699 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\theta_compare_out.log
+  log type:  text
+ opened on:  22 Oct 2026, 20:50:45
+
+. 
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. display "  θ 估计方法对比：对数 2SLS  vs  PPML  vs  PPML+IV"
+  θ 估计方法对比：对数 2SLS  vs  PPML  vs  PPML+IV
+
+. display "  运行时间：$S_DATE $S_TIME"
+  运行时间：22 Oct 2026 20:50:45
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. 
+. *==============================================================================
+. * 1. 读取距离数据
+. *==============================================================================
+. display _n "===== 1. 读取距离数据 ====="
+
+===== 1. 读取距离数据 =====
+
+. 
+. import delimited "`fz'\idn_prov_dist25.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(3 vars, 625 obs)
+
+. destring o, replace
+o already numeric; no replace
+
+. destring d, replace
+d already numeric; no replace
+
+. destring dist_km, replace force
+dist_km already numeric; no replace
+
+. keep o d dist_km
+
+. tempfile iddist
+
+. save `iddist'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_000001.tmp saved as .dta format
+
+. quietly count
+
+. display "  印尼省级距离：`r(N)' 个 OD 对"
+  印尼省级距离：625 个 OD 对
+
+. 
+. import delimited "`fz'\us_state_fips2usps.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(2 vars, 51 obs)
+
+. destring state_fips, replace
+state_fips already numeric; no replace
+
+. rename state_fips o
+
+. tempfile f2u
+
+. save `f2u'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_000002.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. rename o d
+
+. rename lat_o lat_d
+
+. rename lon_o lon_d
+
+. tempfile c_d
+
+. save `c_d'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_000003.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. tempfile c_o
+
+. save `c_o'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_000004.tmp saved as .dta format
+
+. 
+. use `c_o', clear
+
+. cross using `c_d'
+
+. gen double _pio = _pi/180
+
+. gen double _dla = (lat_d - lat_o)*_pio
+
+. gen double _dlo = (lon_d - lon_o)*_pio
+
+. gen double _a = sin(_dla/2)^2 + cos(lat_o*_pio)*cos(lat_d*_pio)*sin(_dlo/2)^2
+
+. gen double dist_km = 2*6371*asin(min(1, sqrt(_a)))
+
+. keep o d dist_km
+
+. tempfile usdist
+
+. save `usdist'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_000005.tmp saved as .dta format
+
+. 
+. *==============================================================================
+. * 2. 美国州级 OD 面板
+. *==============================================================================
+. display _n "===== 2. 美国州级 OD 面板 ====="
+
+===== 2. 美国州级 OD 面板 =====
+
+. 
+. import delimited "`ussrc'", clear varnames(1) colrange(1:5)
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 2,333,166 obs)
+
+. 
+. capture destring o, replace
+
+. capture destring d, replace
+
+. capture destring year, replace
+
+. capture destring wage, replace force
+
+. capture destring w, replace force
+
+. 
+. keep o d year wage w
+
+. drop if missing(o) | missing(d) | missing(year)
+(0 observations deleted)
+
+. drop if missing(w) | w <= 0
+(102 observations deleted)
+
+. keep if inrange(year, 1990, 2010)
+(0 observations deleted)
+
+. 
+. gen byte hasw = !missing(wage) & wage > 0
+
+. gen double m_w  = w
+
+. gen double wx_w = w*wage if hasw
+(209,605 missing values generated)
+
+. gen double wg_w = w if hasw
+(209,605 missing values generated)
+
+. 
+. collapse (sum) m_w wx_w wg_w, by(o d year)
+
+. rename m_w  m_od
+
+. rename wx_w wsum
+
+. rename wg_w wden
+
+. gen double wage_od = wsum/wden if wden > 0 & !missing(wden)
+(13 missing values generated)
+
+. drop wsum wden
+
+. 
+. bysort o year: egen double pop_o  = total(m_od)
+
+. bysort d year: egen double m_in_d = total(m_od)
+
+. bysort year:  egen double pop_all = total(m_od)
+
+. gen double pi_do = m_od/pop_o
+
+. 
+. preserve
+
+.     keep if o == d
+(5,000 observations deleted)
+
+.     keep o year pi_do
+
+.     rename pi_do pi_oo
+
+.     tempfile udg_o
+
+.     save `udg_o'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_000007.tmp saved as .dta format
+
+.     rename o d
+
+.     rename pi_oo pi_dd
+
+.     tempfile udg_d
+
+.     save `udg_d'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_000008.tmp saved as .dta format
+
+. restore
+
+. 
+. preserve
+
+.     keep o d year pi_do
+
+.     rename o _t1
+
+.     rename d _t2
+
+.     rename _t1 d
+
+.     rename _t2 o
+
+.     rename pi_do pi_rev
+
+.     tempfile urev
+
+.     save `urev'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_00000a.tmp saved as .dta format
+
+. restore
+
+. 
+. gen double pi_dnoto = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+
+. 
+. keep if o != d
+(102 observations deleted)
+
+. merge m:1 o year using `udg_o', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             5,000  
+    -----------------------------------------
+
+. merge m:1 d year using `udg_d', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             5,000  
+    -----------------------------------------
+
+. merge 1:1 o d year using `urev', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            84
+        from master                        84  
+        from using                          0  
+
+    Matched                             4,916  
+    -----------------------------------------
+
+. merge m:1 o d using `usdist', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             5,000  
+    -----------------------------------------
+
+. 
+. keep if !missing(pi_do) & pi_do > 0
+(0 observations deleted)
+
+. keep if !missing(pi_rev) & pi_rev > 0
+(84 observations deleted)
+
+. keep if !missing(pi_oo) & pi_oo > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dd) & pi_dd > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dnoto) & pi_dnoto > 0
+(0 observations deleted)
+
+. keep if !missing(dist_km) & dist_km > 0
+(0 observations deleted)
+
+. 
+. gen double ln_p      = ln(pi_do)
+
+. gen double ln_p_rev  = ln(pi_rev)
+
+. gen double ln_poo    = ln(pi_oo)
+
+. gen double ln_pdd    = ln(pi_dd)
+
+. gen double ln_pdnoto = ln(pi_dnoto)
+
+. gen double ln_dist   = ln(dist_km)
+
+. gen double ln_wage   = ln(wage_od) if !missing(wage_od) & wage_od > 0
+(13 missing values generated)
+
+. 
+. tempfile uspanel
+
+. save `uspanel'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_00000b.tmp saved as .dta format
+
+. display "  美国面板已存"
+  美国面板已存
+
+. 
+. *==============================================================================
+. * 3. 印尼省级 OD 面板
+. *==============================================================================
+. display _n "===== 3. 印尼省级 OD 面板 ====="
+
+===== 3. 印尼省级 OD 面板 =====
+
+. 
+. use year bplid geo1_id incwage perwt relate sex age using "`root'\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. keep if sex == 1 & relate == 1 & inrange(age, 15, 65)
+(583,784 observations deleted)
+
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. keep if inrange(o, 11, 18) | inrange(o, 31, 35) | inrange(o, 51, 54)
+(1,491 observations deleted)
+
+. keep if inrange(d, 11, 18) | inrange(d, 31, 35) | inrange(d, 51, 54)
+(4,963 observations deleted)
+
+. 
+. gen byte hasw = !missing(incwage) & incwage > 0 & incwage < 9999999
+
+. gen double m_w  = perwt
+
+. gen double wx_w = perwt*incwage if hasw
+(80,101 missing values generated)
+
+. gen double wg_w = perwt if hasw
+(80,101 missing values generated)
+
+. 
+. collapse (sum) m_w wx_w wg_w, by(o d)
+
+. rename m_w  m_od
+
+. rename wx_w wsum
+
+. rename wg_w wden
+
+. gen double wage_od = wsum/wden if wden > 0 & !missing(wden)
+(15 missing values generated)
+
+. drop wsum wden
+
+. 
+. bysort o: egen double pop_o  = total(m_od)
+
+. bysort d: egen double m_in_d = total(m_od)
+
+. egen double pop_all = total(m_od)
+
+. gen double pi_do = m_od/pop_o
+
+. 
+. preserve
+
+.     keep if o == d
+(223 observations deleted)
+
+.     keep o pi_do
+
+.     rename pi_do pi_oo
+
+.     tempfile idg_o
+
+.     save `idg_o'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_00000d.tmp saved as .dta format
+
+.     rename o d
+
+.     rename pi_oo pi_dd
+
+.     tempfile idg_d
+
+.     save `idg_d'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_00000e.tmp saved as .dta format
+
+. restore
+
+. 
+. preserve
+
+.     keep o d pi_do
+
+.     rename o _t1
+
+.     rename d _t2
+
+.     rename _t1 d
+
+.     rename _t2 o
+
+.     rename pi_do pi_rev
+
+.     tempfile irev
+
+.     save `irev'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_00000g.tmp saved as .dta format
+
+. restore
+
+. 
+. gen double pi_dnoto = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+
+. 
+. keep if o != d
+(16 observations deleted)
+
+. merge m:1 o using `idg_o', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             7
+        from master                         7  
+        from using                          0  
+
+    Matched                               216  
+    -----------------------------------------
+
+. merge m:1 d using `idg_d', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               223  
+    -----------------------------------------
+
+. merge 1:1 o d using `irev', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            25
+        from master                        25  
+        from using                          0  
+
+    Matched                               198  
+    -----------------------------------------
+
+. merge 1:1 o d using `iddist', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             7
+        from master                         7  
+        from using                          0  
+
+    Matched                               216  
+    -----------------------------------------
+
+. 
+. keep if !missing(pi_do) & pi_do > 0
+(0 observations deleted)
+
+. keep if !missing(pi_rev) & pi_rev > 0
+(25 observations deleted)
+
+. keep if !missing(pi_oo) & pi_oo > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dd) & pi_dd > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dnoto) & pi_dnoto > 0
+(0 observations deleted)
+
+. keep if !missing(dist_km) & dist_km > 0
+(0 observations deleted)
+
+. 
+. gen double ln_p      = ln(pi_do)
+
+. gen double ln_p_rev  = ln(pi_rev)
+
+. gen double ln_poo    = ln(pi_oo)
+
+. gen double ln_pdd    = ln(pi_dd)
+
+. gen double ln_pdnoto = ln(pi_dnoto)
+
+. gen double ln_dist   = ln(dist_km)
+
+. gen double ln_wage   = ln(wage_od) if !missing(wage_od) & wage_od > 0
+(11 missing values generated)
+
+. 
+. tempfile idpanel
+
+. save `idpanel'
+file C:\Users\任娜\AppData\Local\Temp\ST_7a48_00000h.tmp saved as .dta format
+
+. quietly count
+
+. display "  印尼面板：`r(N)' 个 OD 对"
+  印尼面板：198 个 OD 对
+
+. 
+. *==============================================================================
+. * 4. 子程序：把三种方法都跑一遍
+. *==============================================================================
+. capture program drop thetacmp
+
+. program define thetacmp
+  1.     args tag cl
+  2.     display _n(2) "{hline 78}"
+  3.     display "  【`tag'】"
+  4.     display "{hline 78}"
+  5. 
+.     quietly regress ln_p c.ln_pdnoto##c.ln_pdnoto
+  6.     local r2z = e(r2)
+  7.     quietly predict double phat, xb
+  8.     display "  零阶段 R² = " %6.4f `r2z'
+  9. 
+.     quietly count if !missing(ln_wage)
+ 10.     local n1 = r(N)
+ 11.     quietly capture ivregress 2sls ln_wage (ln_p = phat) i.o i.d, cluster(`cl')
+ 12.     if _rc == 0 {
+ 13.         local b1 = _b[ln_p]
+ 14.         if `b1' < 0 {
+ 15.             display "  ① 对数 2SLS + 虚拟变量：   β = " %10.6f `b1' "   θ = " %10.4f -1/`b1' "   N = `n1'"
+ 16.         }
+ 17.         else {
+ 18.             display "  ① 对数 2SLS + 虚拟变量：   β = " %10.6f `b1' "   θ 无解（β 为正）"
+ 19.         }
+ 20.     }
+ 21.     else {
+ 22.         display "  ① 对数 2SLS 失败，返回码 `=_rc'"
+ 23.     }
+ 24. 
+.     quietly capture ppmlhdfe wage_od ln_p, absorb(o d) cluster(`cl')
+ 25.     if _rc == 0 {
+ 26.         local b2 = _b[ln_p]
+ 27.         local n2 = e(N)
+ 28.         if `b2' < 0 {
+ 29.             display "  ② PPML + 双向固定效应：    β = " %10.6f `b2' "   θ = " %10.4f -1/`b2' "   N = `n2'"
+ 30.         }
+ 31.         else {
+ 32.             display "  ② PPML + 双向固定效应：    β = " %10.6f `b2' "   θ 无解（β 为正）"
+ 33.         }
+ 34.     }
+ 35.     else {
+ 36.         display "  ② PPML 失败，返回码 `=_rc'"
+ 37.     }
+ 38. 
+.     quietly capture reghdfe ln_p phat, absorb(o d) residuals(u)
+ 39.     if _rc == 0 {
+ 40.         quietly capture ppmlhdfe wage_od ln_p u, absorb(o d) cluster(`cl')
+ 41.         if _rc == 0 {
+ 42.             local b3 = _b[ln_p]
+ 43.             local n3 = e(N)
+ 44.             if `b3' < 0 {
+ 45.                 display "  ③ PPML + 控制函数 IV：      β = " %10.6f `b3' "   θ = " %10.4f -1/`b3' "   N = `n3'"
+ 46.             }
+ 47.             else {
+ 48.                 display "  ③ PPML + 控制函数 IV：      β = " %10.6f `b3' "   θ 无解（β 为正）"
+ 49.             }
+ 50.         }
+ 51.         else {
+ 52.             display "  ③ PPML 第二阶段失败，返回码 `=_rc'"
+ 53.         }
+ 54.     }
+ 55.     else {
+ 56.         display "  ③ 第一阶段 reghdfe 失败，返回码 `=_rc'"
+ 57.     }
+ 58. end
+
+. 
+. *==============================================================================
+. * 5. 印尼
+. *==============================================================================
+. use `idpanel', clear
+
+. thetacmp "印尼 1995（17 个省）" o
+
+
+------------------------------------------------------------------------------
+  【印尼 1995（17 个省）】
+------------------------------------------------------------------------------
+  零阶段 R² = 0.1047
+  ① 对数 2SLS + 虚拟变量：   β =  -0.094781   θ =    10.5507   N = 187
+  ② PPML + 双向固定效应：    β =  -0.056089   θ =    17.8288   N = 187
+  ③ PPML + 控制函数 IV：      β =  -0.097766   θ =    10.2285   N = 187
+
+. display "    论文 θ = 12.5  （SE 1.73）"
+    论文 θ = 12.5  （SE 1.73）
+
+. 
+. *==============================================================================
+. * 6. 美国 1990
+. *==============================================================================
+. use `uspanel', clear
+
+. keep if year == 1990
+(2,382 observations deleted)
+
+. thetacmp "美国 1990（51 个州）" o
+
+
+------------------------------------------------------------------------------
+  【美国 1990（51 个州）】
+------------------------------------------------------------------------------
+  零阶段 R² = 0.4042
+  ① 对数 2SLS + 虚拟变量：   β =  -0.024346   θ =    41.0747   N = 2531
+  ② PPML + 双向固定效应：    β =  -0.034742   θ =    28.7835   N = 2531
+  ③ PPML + 控制函数 IV：      β =  -0.033908   θ =    29.4912   N = 2531
+
+. display "    论文 θ = 27.6  （SE 3.42）"
+    论文 θ = 27.6  （SE 3.42）
+
+. 
+. *==============================================================================
+. * 7. 说明
+. *==============================================================================
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  说明"
+  说明
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. display "  ① 是我们现在 PPT 里的做法；③ 最接近论文（PPML + 固定效应 + IV）。"
+  ① 是我们现在 PPT 里的做法；③ 最接近论文（PPML + 固定效应 + IV）。
+
+. display "  ② 故意不加 IV，用来看内生性偏误的方向和大小。"
+  ② 故意不加 IV，用来看内生性偏误的方向和大小。
+
+. display "  论文的预测：不加 IV 会把 θ 估得偏大（低估选择效应）。"
+  论文的预测：不加 IV 会把 θ 估得偏大（低估选择效应）。
+
+. 
+. log close
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\theta_compare_out.log
+  log type:  text
+ closed on:  22 Oct 2026, 20:51:09
+------------------------------------------------------------------------------------------------------------------------------------------------------

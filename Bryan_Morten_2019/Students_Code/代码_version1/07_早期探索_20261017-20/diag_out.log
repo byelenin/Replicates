@@ -1,0 +1,110 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\diag_out.log
+  log type:  text
+ opened on:  19 Oct 2026, 16:08:57
+
+. 
+. use year geo2_id1995 id1995a_bplreg using "D:\研一上\微观计量\ipumsi_00002.dt
+> a", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. 
+. * ---- 当时「失败版」的两个 key ----
+. gen double bpl_now = floor(id1995a_bplreg/100)*1000 + mod(id1995a_bplreg,100)
+
+. gen long   bpl_key = floor(geo2_id1995/1000)*100 + mod(geo2_id1995,100)
+
+. 
+. display _n "==== 失败版：两个 key 的前 10 行 ===="
+
+==== 失败版：两个 key 的前 10 行 ====
+
+. list id1995a_bplreg bpl_now geo2_id1995 bpl_key in 1/10, noobs
+
+  +-------------------------------------------+
+  | id1995~g   bpl_now   geo2_~1995   bpl_key |
+  |-------------------------------------------|
+  | south ac     11001   south aceh      1101 |
+  | south ac     11001   south aceh      1101 |
+  | south ac     11001   south aceh      1101 |
+  | south ac     11001   south aceh      1101 |
+  | south ac     11001   south aceh      1101 |
+  |-------------------------------------------|
+  | south ac     11001   south aceh      1101 |
+  | south ac     11001   south aceh      1101 |
+  | south ac     11001   south aceh      1101 |
+  | south ac     11001   south aceh      1101 |
+  | south ac     11001   south aceh      1101 |
+  +-------------------------------------------+
+
+. 
+. display _n "==== 失败版：key 相等的观测数 ===="
+
+==== 失败版：key 相等的观测数 ====
+
+. count if bpl_now == bpl_key
+  0
+
+. 
+. * ---- 「成功版」的两个 key ----
+. gen long bcode_master = id1995a_bplreg
+
+. gen long bcode_using  = floor(geo2_id1995/1000)*100 + mod(geo2_id1995,100)
+
+. 
+. display _n "==== 成功版：两个 key 的前 10 行 ===="
+
+==== 成功版：两个 key 的前 10 行 ====
+
+. list id1995a_bplreg bcode_master geo2_id1995 bcode_using in 1/10, noobs
+
+  +---------------------------------------------+
+  | id1995~g   bcode_~r   geo2_~1995   bcode_~g |
+  |---------------------------------------------|
+  | south ac       1101   south aceh       1101 |
+  | south ac       1101   south aceh       1101 |
+  | south ac       1101   south aceh       1101 |
+  | south ac       1101   south aceh       1101 |
+  | south ac       1101   south aceh       1101 |
+  |---------------------------------------------|
+  | south ac       1101   south aceh       1101 |
+  | south ac       1101   south aceh       1101 |
+  | south ac       1101   south aceh       1101 |
+  | south ac       1101   south aceh       1101 |
+  | south ac       1101   south aceh       1101 |
+  +---------------------------------------------+
+
+. 
+. display _n "==== 成功版：key 相等的观测数 ===="
+
+==== 成功版：key 相等的观测数 ====
+
+. count if bcode_master == bcode_using
+  586,900
+
+. 
+. display _n "==== 取值范围对照 ===="
+
+==== 取值范围对照 ====
+
+. summarize bpl_now bpl_key bcode_master bcode_using
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     bpl_now |    718,837    30547.92     13121.8      11001      96096
+     bpl_key |    718,837    3031.154    1274.304       1101       5413
+bcode_master |    718,837    3076.234    1310.229       1101       9696
+ bcode_using |    718,837    3031.154    1274.304       1101       5413
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\diag_out.log
+  log type:  text
+ closed on:  19 Oct 2026, 16:09:03
+-------------------------------------------------------------------------------

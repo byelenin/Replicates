@@ -1,0 +1,103 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\urbcheck_out.log
+  log type:  text
+ opened on:  19 Oct 2026, 16:51:58
+
+. 
+. use year urban perwt using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. 
+. display _n "==== urban 变量的值标签定义 ===="
+
+==== urban 变量的值标签定义 ====
+
+. label list URBAN
+URBAN:
+           1 rural
+           2 urban
+           9 unknown
+
+. 
+. display _n "==== tab urban（带标签，看编码含义）===="
+
+==== tab urban（带标签，看编码含义）====
+
+. tab urban
+
+urban-rural |
+     status |      Freq.     Percent        Cum.
+------------+-----------------------------------
+      rural |    436,183       60.68       60.68
+      urban |    282,654       39.32      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+. 
+. display _n "==== tab urban 加权（看实际占比）===="
+
+==== tab urban 加权（看实际占比）====
+
+. tab urban [aw = perwt]
+
+urban-rural |
+     status |      Freq.     Percent        Cum.
+------------+-----------------------------------
+      rural | 450,662.94       62.69       62.69
+      urban | 268,174.06       37.31      100.00
+------------+-----------------------------------
+      Total |    718,837      100.00
+
+. 
+. display _n "==== 验证 (urban==1)*perwt 到底加出来什么 ===="
+
+==== 验证 (urban==1)*perwt 到底加出来什么 ====
+
+. gen double rur = (urban==1)*perwt
+
+. gen double urb = (urban==2)*perwt
+
+. total rur urb
+
+Total estimation                       Number of obs = 718,837
+
+--------------------------------------------------------------
+             |      Total   Std. err.     [95% conf. interval]
+-------------+------------------------------------------------
+         rur |   1.04e+08     134864      1.04e+08    1.05e+08
+         urb |   6.21e+07   147638.9      6.18e+07    6.24e+07
+--------------------------------------------------------------
+
+. 
+. display _n "==== 对照：不乘 perwt 时 (urban==1) 的样子 ===="
+
+==== 对照：不乘 perwt 时 (urban==1) 的样子 ====
+
+. list urban rur urb in 1/8, noobs
+
+  +-------------------+
+  | urban   rur   urb |
+  |-------------------|
+  | rural   131     0 |
+  | rural   131     0 |
+  | rural   131     0 |
+  | rural   131     0 |
+  | rural   131     0 |
+  |-------------------|
+  | rural   131     0 |
+  | rural   131     0 |
+  | rural   131     0 |
+  +-------------------+
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\urbcheck_out.log
+  log type:  text
+ closed on:  19 Oct 2026, 16:52:10
+-------------------------------------------------------------------------------

@@ -1,0 +1,249 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_us_sample_diag_out.log
+  log type:  text
+ opened on:  25 Oct 2026, 11:56:59
+
+. 
+. local root "C:\Users\任娜\Documents\deepseek-harness\default-workspace"
+
+. 
+. display _n(2) "{hline 86}"
+
+
+--------------------------------------------------------------------------------------
+
+. display "  美国样本口径诊断 —— 找 2,294,054 / 2,294,046"
+  美国样本口径诊断 —— 找 2,294,054 / 2,294,046
+
+. display "{hline 86}"
+--------------------------------------------------------------------------------------
+
+. 
+. insheet using "`root'\usa_od.csv", clear
+(13 vars, 2,333,166 obs)
+
+. display _n "  ① 全部行数 = " %14.0fc _N
+
+  ① 全部行数 =      2,333,166
+
+. display "     目标（论文列1）= 2,294,054      差 = " %12.0fc _N - 2294054
+     目标（论文列1）= 2,294,054      差 =       39,112
+
+. display "     目标（论文列2-4）= 2,294,046    差 = " %12.0fc _N - 2294046
+     目标（论文列2-4）= 2,294,046    差 =       39,120
+
+. 
+. display _n "  ② 变量与缺失"
+
+  ② 变量与缺失
+
+. describe, short
+
+Contains data
+ Observations:     2,333,166                  
+    Variables:            13                  
+Sorted by: 
+     Note: Dataset has changed since last saved.
+
+. foreach v in o d year wage w age statefip pwstate2 gq educ empstat inctot incearn {
+  2.     capture confirm variable `v'
+  3.     if _rc == 0 {
+  4.         quietly count if missing(`v')
+  5.         display "     `v'  缺失 = " %12.0fc r(N)
+  6.     }
+  7. }
+     o  缺失 =            0
+     d  缺失 =            0
+     year  缺失 =            0
+     wage  缺失 =      209,617
+     w  缺失 =            0
+     age  缺失 =            0
+     statefip  缺失 =            0
+     pwstate2  缺失 =            0
+     gq  缺失 =            0
+     educ  缺失 =            0
+     empstat  缺失 =            0
+     inctot  缺失 =            0
+     incearn  缺失 =            0
+
+. 
+. display _n "  ③ 分年"
+
+  ③ 分年
+
+. tab year, missing
+
+       year |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       1990 |  2,007,039       86.02       86.02
+       2010 |    326,127       13.98      100.00
+------------+-----------------------------------
+      Total |  2,333,166      100.00
+
+. 
+. display _n "  ④ age 分布"
+
+  ④ age 分布
+
+. quietly summarize age, detail
+
+. display "     min = " %6.0f r(min) "  p25 = " %6.0f r(p25) "  中位 = " %6.0f r(p50) "  p75 = " %6.0f r(p75) "  max = " %6.0f r(max) "  缺失 = " %10.0fc r(N)
+     min =     16  p25 =     32  中位 =     41  p75 =     50  max =     65  缺失 =  2,333,166
+
+. count if inrange(age, 15, 65)
+  2,333,166
+
+. display "     age 在 15-65 的行数 = " %14.0fc r(N)
+     age 在 15-65 的行数 =      2,333,166
+
+. count if !inrange(age, 15, 65) & !missing(age)
+  0
+
+. display "     age 在 15-65 之外   = " %14.0fc r(N)
+     age 在 15-65 之外   =              0
+
+. display "     ⇒ 若只留 15-65，为 " %14.0fc _N " 行" 
+     ⇒ 若只留 15-65，为      2,333,166 行
+
+. 
+. display _n "  ⑤ gq（group quarters）"
+
+  ⑤ gq（group quarters）
+
+. tab gq, missing
+
+         gq |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |  2,332,123       99.96       99.96
+          2 |      1,040        0.04      100.00
+          5 |          3        0.00      100.00
+------------+-----------------------------------
+      Total |  2,333,166      100.00
+
+. 
+. display _n "  ⑥ empstat"
+
+  ⑥ empstat
+
+. tab empstat, missing
+
+    empstat |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |  2,333,166      100.00      100.00
+------------+-----------------------------------
+      Total |  2,333,166      100.00
+
+. 
+. display _n "  ⑦ 工资"
+
+  ⑦ 工资
+
+. count if !missing(wage) & wage > 0
+  2,123,549
+
+. display "     有工资(wage>0)      = " %14.0fc r(N)
+     有工资(wage>0)      =      2,123,549
+
+. count if missing(wage) | wage <= 0
+  209,617
+
+. display "     无有效工资          = " %14.0fc r(N)
+     无有效工资          =        209,617
+
+. count if !missing(w)
+  2,333,166
+
+. display "     有 w（权重）        = " %14.0fc r(N)
+     有 w（权重）        =      2,333,166
+
+. 
+. display _n "  ⑧ 跨州 / 留守"
+
+  ⑧ 跨州 / 留守
+
+. count if o != d
+  918,748
+
+. display "     跨州 o != d         = " %14.0fc r(N)
+     跨州 o != d         =        918,748
+
+. count if o == d
+  1,414,418
+
+. display "     留守 o == d         = " %14.0fc r(N)
+     留守 o == d         =      1,414,418
+
+. 
+. display _n "  ⑨ 候选口径 —— 逐个试，看哪个等于 2,294,054"
+
+  ⑨ 候选口径 —— 逐个试，看哪个等于 2,294,054
+
+. local targets "2294054 2294046"
+
+. foreach f in "" "if inrange(age,15,65)" "if gq == 0" "if gq == 1" "if !missing(wage) & wage > 0" "if o != d" "if inrange(age,15,65) & o != d" "if inrange(age,15,65) & gq == 0" {
+  2.     quietly count `f'
+  3.     local n = r(N)
+  4.     local hit ""
+  5.     if abs(`n' - 2294054) < 2000 | abs(`n' - 2294046) < 2000 local hit "   ⭐ 接近目标！"
+  6.     display "     count `f'   →  " %14.0fc `n' "`hit'"
+  7. }
+     count    →       2,333,166
+     count if inrange(age,15,65)   →       2,333,166
+     count if gq == 0   →               0
+     count if gq == 1   →       2,332,123
+     count if !missing(wage) & wage > 0   →       2,123,549
+     count if o != d   →         918,748
+     count if inrange(age,15,65) & o != d   →         918,748
+     count if inrange(age,15,65) & gq == 0   →               0
+
+. foreach e in 1 2 3 4 5 6 7 {
+  2.     quietly count if empstat == `e'
+  3.     local n = r(N)
+  4.     local hit ""
+  5.     if abs(`n' - 2294054) < 2000 local hit "   ⭐ 接近目标！"
+  6.     display "     count if empstat==`e'  →  " %14.0fc `n' "`hit'"
+  7. }
+     count if empstat==1  →       2,333,166
+     count if empstat==2  →               0
+     count if empstat==3  →               0
+     count if empstat==4  →               0
+     count if empstat==5  →               0
+     count if empstat==6  →               0
+     count if empstat==7  →               0
+
+. 
+. display _n "  ⑩ 权重之和（看 2,294,054 会不会是加权人口）"
+
+  ⑩ 权重之和（看 2,294,054 会不会是加权人口）
+
+. quietly summarize w
+
+. display "     sum(w) 全样本 = " %16.0fc r(sum)
+     sum(w) 全样本 =       71,181,009
+
+. quietly summarize w if o != d
+
+. display "     sum(w) 跨州     = " %16.0fc r(sum)
+     sum(w) 跨州     =       29,154,962
+
+. quietly summarize w if o == d
+
+. display "     sum(w) 留守     = " %16.0fc r(sum)
+     sum(w) 留守     =       42,026,047
+
+. 
+. display _n(2) "{hline 86}"
+
+
+--------------------------------------------------------------------------------------
+
+. display "  结束：$S_DATE $S_TIME"
+  结束：25 Oct 2026 11:57:28
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t3_us_sample_diag_out.log
+  log type:  text
+ closed on:  25 Oct 2026, 11:57:28
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

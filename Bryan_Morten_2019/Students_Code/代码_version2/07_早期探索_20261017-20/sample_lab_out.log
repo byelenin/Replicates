@@ -1,0 +1,697 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_replication\stata\sample_lab_out.log
+  log type:  text
+ opened on:  18 Oct 2026, 10:25:42
+
+. 
+. use sample year using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. 
+. display "===== SAMPLE 变量的值标签 ====="
+===== SAMPLE 变量的值标签 =====
+
+. label list SAMPLE
+SAMPLE:
+    32197001 argentina 1970
+    32198001 argentina 1980
+    32199101 argentina 1991
+    32200101 argentina 2001
+    32201001 argentina 2010
+    40197101 austria 1971
+    40198101 austria 1981
+    40199101 austria 1991
+    40200101 austria 2001
+    40201101 austria 2011
+    50199101 bangladesh 1991
+    50200101 bangladesh 2001
+    50201101 bangladesh 2011
+    51200101 armenia 2001
+    51201101 armenia 2011
+    68197601 bolivia 1976
+    68199201 bolivia 1992
+    68200101 bolivia 2001
+    68201201 bolivia 2012
+    72198101 botswana 1981
+    72199101 botswana 1991
+    72200101 botswana 2001
+    72201101 botswana 2011
+    76196001 brazil 1960
+    76197001 brazil 1970
+    76198001 brazil 1980
+    76199101 brazil 1991
+    76200001 brazil 2000
+    76201001 brazil 2010
+   104201401 myanmar 2014
+   112199901 belarus 1999
+   112200901 belarus 2009
+   116199801 cambodia 1998
+   116200401 cambodia 2004
+   116200801 cambodia 2008
+   116201301 cambodia 2013
+   116201901 cambodia 2019
+   120197601 cameroon 1976
+   120198701 cameroon 1987
+   120200501 cameroon 2005
+   124185201 canada 1852
+   124187101 canada 1871
+   124188101 canada 1881
+   124189101 canada 1891
+   124190101 canada 1901
+   124191101 canada 1911
+   124197101 canada 1971
+   124198101 canada 1981
+   124199101 canada 1991
+   124200101 canada 2001
+   124201101 canada 2011
+   152196001 chile 1960
+   152197001 chile 1970
+   152198201 chile 1982
+   152199201 chile 1992
+   152200201 chile 2002
+   152201701 chile 2017
+   156198201 china 1982
+   156199001 china 1990
+   156200001 china 2000
+   170196401 colombia 1964
+   170197301 colombia 1973
+   170198501 colombia 1985
+   170199301 colombia 1993
+   170200501 colombia 2005
+   188196301 costa rica 1963
+   188197301 costa rica 1973
+   188198401 costa rica 1984
+   188200001 costa rica 2000
+   188201101 costa rica 2011
+   192200201 cuba 2002
+   192201201 cuba 2012
+   204197901 benin 1979
+   204199201 benin 1992
+   204200201 benin 2002
+   204201301 benin 2013
+   208178701 denmark 1787
+   208180101 denmark 1801
+   208184501 denmark 1845
+   208188001 denmark 1880
+   208188501 denmark 1885
+   214196001 dominican republic 1960
+   214197001 dominican republic 1970
+   214198101 dominican republic 1981
+   214200201 dominican republic 2002
+   214201001 dominican republic 2010
+   218196201 ecuador 1962
+   218197401 ecuador 1974
+   218198201 ecuador 1982
+   218199001 ecuador 1990
+   218200101 ecuador 2001
+   218201001 ecuador 2010
+   222199201 el salvador 1992
+   222200701 el salvador 2007
+   231198401 ethiopia 1984
+   231199401 ethiopia 1994
+   231200701 ethiopia 2007
+   242196601 fiji 1966
+   242197601 fiji 1976
+   242198601 fiji 1986
+   242199601 fiji 1996
+   242200701 fiji 2007
+   242201401 fiji 2014
+   246201001 finland 2010
+   250196201 france 1962
+   250196801 france 1968
+   250197501 france 1975
+   250198201 france 1982
+   250199001 france 1990
+   250199901 france 1999
+   250200601 france 2006
+   250201101 france 2011
+   275199701 palestine 1997
+   275200701 palestine 2007
+   275201701 palestine 2017
+   276181901 germany 1819 (mecklenburg)
+   276197001 germany 1970 (west)
+   276197101 germany 1971 (east)
+   276198101 germany 1981 (east)
+   276198701 germany 1987 (west)
+   288198401 ghana 1984
+   288200001 ghana 2000
+   288201001 ghana 2010
+   300197101 greece 1971
+   300198101 greece 1981
+   300199101 greece 1991
+   300200101 greece 2001
+   300201101 greece 2011
+   320196401 guatemala 1964
+   320197301 guatemala 1973
+   320198101 guatemala 1981
+   320199401 guatemala 1994
+   320200201 guatemala 2002
+   324198301 guinea 1983
+   324199601 guinea 1996
+   324201401 guinea 2014
+   332197101 haiti 1971
+   332198201 haiti 1982
+   332200301 haiti 2003
+   340196101 honduras 1961
+   340197401 honduras 1974
+   340198801 honduras 1988
+   340200101 honduras 2001
+   340201301 honduras 2013
+   348197001 hungary 1970
+   348198001 hungary 1980
+   348199001 hungary 1990
+   348200101 hungary 2001
+   348201101 hungary 2011
+   352170301 iceland 1703
+   352172901 iceland 1729
+   352180101 iceland 1801
+   352190101 iceland 1901
+   352191001 iceland 1910
+   356198341 india 1983
+   356198741 india 1987
+   356199341 india 1993
+   356199941 india 1999
+   356200441 india 2004
+   356200941 india 2009
+   360197101 indonesia 1971
+   360197601 indonesia 1976
+   360198001 indonesia 1980
+   360198501 indonesia 1985
+   360199001 indonesia 1990
+   360199501 indonesia 1995
+   360200001 indonesia 2000
+   360200501 indonesia 2005
+   360201001 indonesia 2010
+   364200601 iran 2006
+   364201101 iran 2011
+   368199701 iraq 1997
+   372190101 ireland 1901
+   372191101 ireland 1911
+   372197101 ireland 1971
+   372197901 ireland 1979
+   372198101 ireland 1981
+   372198601 ireland 1986
+   372199101 ireland 1991
+   372199601 ireland 1996
+   372200201 ireland 2002
+   372200601 ireland 2006
+   372201101 ireland 2011
+   372201601 ireland 2016
+   376197201 israel 1972
+   376198301 israel 1983
+   376199501 israel 1995
+   376200801 israel 2008
+   380200101 italy 2001
+   380201101 italy 2011
+   380201121 italy 2011 q1 lfs
+   380201221 italy 2012 q1 lfs
+   380201321 italy 2013 q1 lfs
+   380201421 italy 2014 q1 lfs
+   380201521 italy 2015 q1 lfs
+   380201621 italy 2016 q1 lfs
+   380201721 italy 2017 q1 lfs
+   380201821 italy 2018 q1 lfs
+   380201921 italy 2019 q1 lfs
+   380202021 italy 2020 q1 lfs
+   384198801 cÃ´te d'ivoire 1988
+   384199801 cÃ´te d'ivoire 1998
+   388198201 jamaica 1982
+   388199101 jamaica 1991
+   388200101 jamaica 2001
+   400200401 jordan 2004
+   404196901 kenya 1969
+   404197901 kenya 1979
+   404198901 kenya 1989
+   404199901 kenya 1999
+   404200901 kenya 2009
+   404201901 kenya 2019
+   417199901 kyrgyz republic 1999
+   417200901 kyrgyz republic 2009
+   418199501 laos 1995
+   418200501 laos 2005
+   418201501 laos 2015
+   426199601 lesotho 1996
+   426200601 lesotho 2006
+   430197401 liberia 1974
+   430200801 liberia 2008
+   454198701 malawi 1987
+   454199801 malawi 1998
+   454200801 malawi 2008
+   454201801 malawi 2018
+   458197001 malaysia 1970
+   458198001 malaysia 1980
+   458199101 malaysia 1991
+   458200001 malaysia 2000
+   466198701 mali 1987
+   466199801 mali 1998
+   466200901 mali 2009
+   480199001 mauritius 1990
+   480200001 mauritius 2000
+   480201101 mauritius 2011
+   484196001 mexico 1960
+   484197001 mexico 1970
+   484199001 mexico 1990
+   484199501 mexico 1995
+   484200001 mexico 2000
+   484200501 mexico 2005
+   484200521 mexico 2005 q1 lfs
+   484200522 mexico 2005 q2 lfs
+   484200523 mexico 2005 q3 lfs
+   484200524 mexico 2005 q4 lfs
+   484200621 mexico 2006 q1 lfs
+   484200622 mexico 2006 q2 lfs
+   484200623 mexico 2006 q3 lfs
+   484200624 mexico 2006 q4 lfs
+   484200721 mexico 2007 q1 lfs
+   484200722 mexico 2007 q2 lfs
+   484200723 mexico 2007 q3 lfs
+   484200724 mexico 2007 q4 lfs
+   484200821 mexico 2008 q1 lfs
+   484200822 mexico 2008 q2 lfs
+   484200823 mexico 2008 q3 lfs
+   484200824 mexico 2008 q4 lfs
+   484200921 mexico 2009 q1 lfs
+   484200922 mexico 2009 q2 lfs
+   484200923 mexico 2009 q3 lfs
+   484200924 mexico 2009 q4 lfs
+   484201001 mexico 2010
+   484201021 mexico 2010 q1 lfs
+   484201022 mexico 2010 q2 lfs
+   484201023 mexico 2010 q3 lfs
+   484201024 mexico 2010 q4 lfs
+   484201121 mexico 2011 q1 lfs
+   484201122 mexico 2011 q2 lfs
+   484201123 mexico 2011 q3 lfs
+   484201124 mexico 2011 q4 lfs
+   484201221 mexico 2012 q1 lfs
+   484201222 mexico 2012 q2 lfs
+   484201223 mexico 2012 q3 lfs
+   484201224 mexico 2012 q4 lfs
+   484201321 mexico 2013 q1 lfs
+   484201322 mexico 2013 q2 lfs
+   484201323 mexico 2013 q3 lfs
+   484201324 mexico 2013 q4 lfs
+   484201421 mexico 2014 q1 lfs
+   484201422 mexico 2014 q2 lfs
+   484201423 mexico 2014 q3 lfs
+   484201424 mexico 2014 q4 lfs
+   484201501 mexico 2015
+   484201521 mexico 2015 q1 lfs
+   484201522 mexico 2015 q2 lfs
+   484201523 mexico 2015 q3 lfs
+   484201524 mexico 2015 q4 lfs
+   484201621 mexico 2016 q1 lfs
+   484201622 mexico 2016 q2 lfs
+   484201623 mexico 2016 q3 lfs
+   484201624 mexico 2016 q4 lfs
+   484201721 mexico 2017 q1 lfs
+   484201722 mexico 2017 q2 lfs
+   484201723 mexico 2017 q3 lfs
+   484201724 mexico 2017 q4 lfs
+   484201821 mexico 2018 q1 lfs
+   484201822 mexico 2018 q2 lfs
+   484201823 mexico 2018 q3 lfs
+   484201824 mexico 2018 q4 lfs
+   484201921 mexico 2019 q1 lfs
+   484201922 mexico 2019 q2 lfs
+   484201923 mexico 2019 q3 lfs
+   484201924 mexico 2019 q4 lfs
+   484202001 mexico 2020
+   484202021 mexico 2020 q1 lfs
+   484202023 mexico 2020 q3 lfs
+   496198901 mongolia 1989
+   496200001 mongolia 2000
+   496201001 mongolia 2010
+   496202001 mongolia 2020
+   504198201 morocco 1982
+   504199401 morocco 1994
+   504200401 morocco 2004
+   504201401 morocco 2014
+   508199701 mozambique 1997
+   508200701 mozambique 2007
+   508201701 mozambique 2017
+   524200101 nepal 2001
+   524201101 nepal 2011
+   528196001 netherlands 1960
+   528197101 netherlands 1971
+   528200101 netherlands 2001
+   528201101 netherlands 2011
+   558197101 nicaragua 1971
+   558199501 nicaragua 1995
+   558200501 nicaragua 2005
+   566200621 nigeria 2006
+   566200721 nigeria 2007
+   566200821 nigeria 2008
+   566200921 nigeria 2009
+   566201021 nigeria 2010
+   578180101 norway 1801
+   578186501 norway 1865
+   578187501 norway 1875
+   578190001 norway 1900
+   578191001 norway 1910
+   586197301 pakistan 1973
+   586198101 pakistan 1981
+   586199801 pakistan 1998
+   591196001 panama 1960
+   591197001 panama 1970
+   591198001 panama 1980
+   591199001 panama 1990
+   591200001 panama 2000
+   591201001 panama 2010
+   598198001 papua new guinea 1980
+   598199001 papua new guinea 1990
+   598200001 papua new guinea 2000
+   600196201 paraguay 1962
+   600197201 paraguay 1972
+   600198201 paraguay 1982
+   600199201 paraguay 1992
+   600200201 paraguay 2002
+   604199301 peru 1993
+   604200701 peru 2007
+   604201701 peru 2017
+   608199001 philippines 1990
+   608199501 philippines 1995
+   608199721 philippines 1997 q1 lfs
+   608199722 philippines 1997 q2 lfs
+   608199723 philippines 1997 q3 lfs
+   608199724 philippines 1997 q4 lfs
+   608199821 philippines 1998 q1 lfs
+   608199822 philippines 1998 q2 lfs
+   608199823 philippines 1998 q3 lfs
+   608199824 philippines 1998 q4 lfs
+   608199921 philippines 1999 q1 lfs
+   608199922 philippines 1999 q2 lfs
+   608199923 philippines 1999 q3 lfs
+   608199924 philippines 1999 q4 lfs
+   608200001 philippines 2000
+   608200021 philippines 2000 q1 lfs
+   608200022 philippines 2000 q2 lfs
+   608200023 philippines 2000 q3 lfs
+   608200024 philippines 2000 q4 lfs
+   608200121 philippines 2001 q1 lfs
+   608200122 philippines 2001 q2 lfs
+   608200123 philippines 2001 q3 lfs
+   608200124 philippines 2001 q4 lfs
+   608200221 philippines 2002 q1 lfs
+   608200222 philippines 2002 q2 lfs
+   608200223 philippines 2002 q3 lfs
+   608200224 philippines 2002 q4 lfs
+   608200321 philippines 2003 q1 lfs
+   608200322 philippines 2003 q2 lfs
+   608200323 philippines 2003 q3 lfs
+   608200324 philippines 2003 q4 lfs
+   608200421 philippines 2004 q1 lfs
+   608200422 philippines 2004 q2 lfs
+   608200423 philippines 2004 q3 lfs
+   608200424 philippines 2004 q4 lfs
+   608200521 philippines 2005 q1 lfs
+   608200522 philippines 2005 q2 lfs
+   608200523 philippines 2005 q3 lfs
+   608200524 philippines 2005 q4 lfs
+   608200621 philippines 2006 q1 lfs
+   608200622 philippines 2006 q2 lfs
+   608200623 philippines 2006 q3 lfs
+   608200624 philippines 2006 q4 lfs
+   608200721 philippines 2007 q1 lfs
+   608200722 philippines 2007 q2 lfs
+   608200723 philippines 2007 q3 lfs
+   608200724 philippines 2007 q4 lfs
+   608200821 philippines 2008 q1 lfs
+   608200822 philippines 2008 q2 lfs
+   608200823 philippines 2008 q3 lfs
+   608200824 philippines 2008 q4 lfs
+   608200921 philippines 2009 q1 lfs
+   608200922 philippines 2009 q2 lfs
+   608200923 philippines 2009 q3 lfs
+   608200924 philippines 2009 q4 lfs
+   608201001 philippines 2010
+   608201021 philippines 2010 q1 lfs
+   608201022 philippines 2010 q2 lfs
+   608201023 philippines 2010 q3 lfs
+   608201024 philippines 2010 q4 lfs
+   608201121 philippines 2011 q1 lfs
+   608201122 philippines 2011 q2 lfs
+   608201123 philippines 2011 q3 lfs
+   608201124 philippines 2011 q4 lfs
+   608201221 philippines 2012 q1 lfs
+   608201222 philippines 2012 q2 lfs
+   608201223 philippines 2012 q3 lfs
+   608201224 philippines 2012 q4 lfs
+   608201321 philippines 2013 q1 lfs
+   608201322 philippines 2013 q2 lfs
+   608201323 philippines 2013 q3 lfs
+   608201324 philippines 2013 q4 lfs
+   608201421 philippines 2014 q1 lfs
+   608201422 philippines 2014 q2 lfs
+   608201423 philippines 2014 q3 lfs
+   608201424 philippines 2014 q4 lfs
+   608201521 philippines 2015 q1 lfs
+   608201522 philippines 2015 q2 lfs
+   608201523 philippines 2015 q3 lfs
+   608201524 philippines 2015 q4 lfs
+   608201621 philippines 2016 q1 lfs
+   608201622 philippines 2016 q2 lfs
+   608201623 philippines 2016 q3 lfs
+   608201624 philippines 2016 q4 lfs
+   608201721 philippines 2017 q1 lfs
+   608201722 philippines 2017 q2 lfs
+   608201723 philippines 2017 q3 lfs
+   608201724 philippines 2017 q4 lfs
+   608201821 philippines 2018 q1 lfs
+   608201822 philippines 2018 q2 lfs
+   608201823 philippines 2018 q3 lfs
+   608201824 philippines 2018 q4 lfs
+   608201921 philippines 2019 q1 lfs
+   608201922 philippines 2019 q2 lfs
+   608201923 philippines 2019 q3 lfs
+   616197801 poland 1978
+   616198801 poland 1988
+   616200201 poland 2002
+   616201101 poland 2011
+   620198101 portugal 1981
+   620199101 portugal 1991
+   620200101 portugal 2001
+   620201101 portugal 2011
+   630197001 puerto rico 1970
+   630198001 puerto rico 1980
+   630199001 puerto rico 1990
+   630200001 puerto rico 2000
+   630200501 puerto rico 2005
+   630201001 puerto rico 2010
+   630201501 puerto rico 2015
+   630202001 puerto rico 2020
+   642197701 romania 1977
+   642199201 romania 1992
+   642200201 romania 2002
+   642201101 romania 2011
+   643200201 russia 2002
+   643201001 russia 2010
+   646199101 rwanda 1991
+   646200201 rwanda 2002
+   646201201 rwanda 2012
+   662198001 saint lucia 1980
+   662199101 saint lucia 1991
+   686198801 senegal 1988
+   686200201 senegal 2002
+   686201301 senegal 2013
+   694200401 sierra leone 2004
+   694201501 sierra leone 2015
+   703199101 slovak republic 1991
+   703200101 slovak republic 2001
+   703201101 slovak republic 2011
+   704198901 vietnam 1989
+   704199901 vietnam 1999
+   704200901 vietnam 2009
+   704201901 vietnam 2019
+   705200201 slovenia 2002
+   710199601 south africa 1996
+   710200101 south africa 2001
+   710200701 south africa 2007
+   710201101 south africa 2011
+   710201601 south africa 2016
+   716201201 zimbabwe 2012
+   724198101 spain 1981
+   724199101 spain 1991
+   724200101 spain 2001
+   724200521 spain 2005 q1 lfs
+   724200522 spain 2005 q2 lfs
+   724200523 spain 2005 q3 lfs
+   724200524 spain 2005 q4 lfs
+   724200621 spain 2006 q1 lfs
+   724200622 spain 2006 q2 lfs
+   724200623 spain 2006 q3 lfs
+   724200624 spain 2006 q4 lfs
+   724200721 spain 2007 q1 lfs
+   724200722 spain 2007 q2 lfs
+   724200723 spain 2007 q3 lfs
+   724200724 spain 2007 q4 lfs
+   724200821 spain 2008 q1 lfs
+   724200822 spain 2008 q2 lfs
+   724200823 spain 2008 q3 lfs
+   724200824 spain 2008 q4 lfs
+   724200921 spain 2009 q1 lfs
+   724200922 spain 2009 q2 lfs
+   724200923 spain 2009 q3 lfs
+   724200924 spain 2009 q4 lfs
+   724201021 spain 2010 q1 lfs
+   724201022 spain 2010 q2 lfs
+   724201023 spain 2010 q3 lfs
+   724201024 spain 2010 q4 lfs
+   724201101 spain 2011
+   724201121 spain 2011 q1 lfs
+   724201122 spain 2011 q2 lfs
+   724201123 spain 2011 q3 lfs
+   724201124 spain 2011 q4 lfs
+   724201221 spain 2012 q1 lfs
+   724201222 spain 2012 q2 lfs
+   724201223 spain 2012 q3 lfs
+   724201224 spain 2012 q4 lfs
+   724201321 spain 2013 q1 lfs
+   724201322 spain 2013 q2 lfs
+   724201323 spain 2013 q3 lfs
+   724201324 spain 2013 q4 lfs
+   724201421 spain 2014 q1 lfs
+   724201422 spain 2014 q2 lfs
+   724201423 spain 2014 q3 lfs
+   724201424 spain 2014 q4 lfs
+   724201521 spain 2015 q1 lfs
+   724201522 spain 2015 q2 lfs
+   724201523 spain 2015 q3 lfs
+   724201524 spain 2015 q4 lfs
+   724201621 spain 2016 q1 lfs
+   724201622 spain 2016 q2 lfs
+   724201623 spain 2016 q3 lfs
+   724201624 spain 2016 q4 lfs
+   724201721 spain 2017 q1 lfs
+   724201722 spain 2017 q2 lfs
+   724201723 spain 2017 q3 lfs
+   724201724 spain 2017 q4 lfs
+   724201821 spain 2018 q1 lfs
+   724201822 spain 2018 q2 lfs
+   724201823 spain 2018 q3 lfs
+   724201824 spain 2018 q4 lfs
+   724201921 spain 2019 q1 lfs
+   724201922 spain 2019 q2 lfs
+   724201923 spain 2019 q3 lfs
+   724201924 spain 2019 q4 lfs
+   724202021 spain 2020 q1 lfs
+   724202022 spain 2020 q2 lfs
+   724202023 spain 2020 q3 lfs
+   724202024 spain 2020 q4 lfs
+   728200801 south sudan 2008
+   729200801 sudan 2008
+   740200401 suriname 2004
+   740201201 suriname 2012
+   752188001 sweden 1880
+   752189001 sweden 1890
+   752190001 sweden 1900
+   752191001 sweden 1910
+   756197001 switzerland 1970
+   756198001 switzerland 1980
+   756199001 switzerland 1990
+   756200001 switzerland 2000
+   756201101 switzerland 2011
+   764197001 thailand 1970
+   764198001 thailand 1980
+   764199001 thailand 1990
+   764200001 thailand 2000
+   768196001 togo 1960
+   768197001 togo 1970
+   768201001 togo 2010
+   780197001 trinidad and tobago 1970
+   780198001 trinidad and tobago 1980
+   780199001 trinidad and tobago 1990
+   780200001 trinidad and tobago 2000
+   780201101 trinidad and tobago 2011
+   792198501 turkey 1985
+   792199001 turkey 1990
+   792200001 turkey 2000
+   800199101 uganda 1991
+   800200201 uganda 2002
+   800201401 uganda 2014
+   804200101 ukraine 2001
+   818184801 egypt 1848
+   818186801 egypt 1868
+   818198601 egypt 1986
+   818199601 egypt 1996
+   818200601 egypt 2006
+   826185101 united kingdom 1851 (england and wales)
+   826185102 united kingdom 1851 (scotland)
+   826185103 united kingdom 1851 (2% sample)
+   826186101 united kingdom 1861 (england and wales)
+   826186102 united kingdom 1861 (scotland)
+   826187101 united kingdom 1871 (scotland)
+   826188101 united kingdom 1881 (england and wales)
+   826188102 united kingdom 1881 (scotland)
+   826189101 united kingdom 1891 (england and wales)
+   826189102 united kingdom 1891 (scotland)
+   826190101 united kingdom 1901 (england and wales)
+   826190102 united kingdom 1901 (scotland)
+   826191101 united kingdom 1911 (england and wales)
+   826196101 united kingdom 1961
+   826197101 united kingdom 1971
+   826199101 united kingdom 1991
+   826200101 united kingdom 2001
+   834198801 tanzania 1988
+   834200201 tanzania 2002
+   834201201 tanzania 2012
+   840185001 united states 1850 (100%)
+   840185002 united states 1850 (1%)
+   840186001 united states 1860 (1%)
+   840187001 united states 1870 (1%)
+   840188001 united states 1880 (100%)
+   840188002 united states 1880 (10%)
+   840190001 united states 1900 (5%)
+   840191001 united states 1910 (1%)
+   840196001 united states 1960
+   840197001 united states 1970
+   840198001 united states 1980
+   840199001 united states 1990
+   840200001 united states 2000
+   840200501 united states 2005
+   840201001 united states 2010
+   840201501 united states 2015
+   840202001 united states 2020
+   854198501 burkina faso 1985
+   854199601 burkina faso 1996
+   854200601 burkina faso 2006
+   858196301 uruguay 1963
+   858196302 uruguay 1963 (full count)
+   858197501 uruguay 1975
+   858197502 uruguay 1975 (full count)
+   858198501 uruguay 1985
+   858198502 uruguay 1985 (full count)
+   858199601 uruguay 1996
+   858199602 uruguay 1996 (full count)
+   858200621 uruguay 2006
+   858201101 uruguay 2011
+   858201102 uruguay 2011 (full count)
+   862197101 venezuela 1971
+   862198101 venezuela 1981
+   862199001 venezuela 1990
+   862200101 venezuela 2001
+   894199001 zambia 1990
+   894200001 zambia 2000
+   894201001 zambia 2010
+
+. 
+. display "===== sample x year 交叉表 ====="
+===== sample x year 交叉表 =====
+
+. tab sample year
+
+         ipums sample |         year
+           identifier |      1995       2010 |     Total
+----------------------+----------------------+----------
+       indonesia 1995 |   718,837          0 |   718,837 
+       indonesia 2010 |         0 23,603,049 |23,603,049 
+----------------------+----------------------+----------
+                Total |   718,837 23,603,049 |24,321,886 
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_replication\stata\sample_lab_out.log
+  log type:  text
+ closed on:  18 Oct 2026, 10:25:50
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

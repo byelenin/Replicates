@@ -1,0 +1,184 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\gmmbench_out.log
+  log type:  text
+ opened on:  26 Oct 2026, 09:26:49
+
+. 
+. *--- 建面板 ---
+. use year bplid geo1_id incwage perwt sex relate age using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. keep if sex == 1 & relate == 1 & inrange(age, 15, 65)
+(583,784 observations deleted)
+
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. keep if inrange(o,11,18) | inrange(o,31,35) | inrange(o,51,54)
+(1,491 observations deleted)
+
+. keep if inrange(d,11,18) | inrange(d,31,35) | inrange(d,51,54)
+(4,963 observations deleted)
+
+. gen byte hasw = !missing(incwage) & incwage > 0 & incwage < 9999999
+
+. gen double m_w = perwt
+
+. gen double wx_w = perwt*incwage if hasw
+(80,101 missing values generated)
+
+. gen double wg_w = perwt if hasw
+(80,101 missing values generated)
+
+. collapse (sum) m_w wx_w wg_w, by(o d)
+
+. rename m_w m_od
+
+. egen double pop_o = total(m_od), by(o)
+
+. keep if o != d
+(16 observations deleted)
+
+. gen double wage_od = wx_w/wg_w if wg_w > 0
+(15 missing values generated)
+
+. keep if !missing(wage_od) & wage_od > 0 & m_od > 0
+(15 observations deleted)
+
+. gen double pi_do = m_od/pop_o
+
+. keep if pi_do > 0
+(0 observations deleted)
+
+. gen double ln_p = ln(pi_do)
+
+. gen double ln_p2 = ln_p^2
+
+. quietly summarize wage_od
+
+. gen double wage_s = wage_od/r(mean)
+
+. quietly tab o, gen(do_)
+
+. quietly tab d, gen(dd_)
+
+. quietly count
+
+. display _n(2) "面板观测数 N = " r(N)
+
+
+面板观测数 N = 208
+
+. 
+. timer clear
+
+. 
+. *--- 档 A：3 个参数 ---
+. display _n(2) "########## 档 A：3 个参数 ##########"
+
+
+########## 档 A：3 个参数 ##########
+
+. timer on 1
+
+. capture quietly gmm (wage_s - exp({q1}*do_1 + {q2}*do_2 + {b1}*ln_p)), instruments(do_1 do_2 ln_p ln_p2) iterate(50) nolog
+
+. display "  返回码 = " _rc
+  返回码 = 0
+
+. timer off 1
+
+. timer list 1
+   1:      3.57 /        1 =       3.5690
+
+. 
+. *--- 档 B：9 个参数 ---
+. display _n(2) "########## 档 B：9 个参数 ##########"
+
+
+########## 档 B：9 个参数 ##########
+
+. timer on 2
+
+. capture quietly gmm (wage_s - exp({q1}*do_1 + {q2}*do_2 + {q3}*do_3 + {q4}*do_4 + {q5}*do_5 + {q6}*do_6 + {q7}*do_7 + {q8}*do_8 + {b1}*ln_
+> p)), instruments(do_1 do_2 do_3 do_4 do_5 do_6 do_7 do_8 ln_p ln_p2) iterate(50) nolog
+
+. display "  返回码 = " _rc
+  返回码 = 0
+
+. timer off 2
+
+. timer list 2
+   2:      0.38 /        1 =       0.3750
+
+. 
+. *--- 档 C：17 个参数 ---
+. display _n(2) "########## 档 C：17 个参数（全部出发地固定效应）##########"
+
+
+########## 档 C：17 个参数（全部出发地固定效应）##########
+
+. timer on 3
+
+. capture quietly gmm (wage_s - exp({q1}*do_1 + {q2}*do_2 + {q3}*do_3 + {q4}*do_4 + {q5}*do_5 + {q6}*do_6 + {q7}*do_7 + {q8}*do_8 + {q9}*do_
+> 9 + {q10}*do_10 + {q11}*do_11 + {q12}*do_12 + {q13}*do_13 + {q14}*do_14 + {q15}*do_15 + {q16}*do_16 + {b1}*ln_p)), instruments(do_1 do_2 d
+> o_3 do_4 do_5 do_6 do_7 do_8 do_9 do_10 do_11 do_12 do_13 do_14 do_15 do_16 ln_p ln_p2) iterate(50) nolog
+
+. display "  返回码 = " _rc
+  返回码 = 0
+
+. timer off 3
+
+. timer list 3
+   3:      1.47 /        1 =       1.4700
+
+. 
+. *--- 档 D：32 个参数（出发地 + 目的地）---
+. display _n(2) "########## 档 D：32 个参数（双向固定效应）##########"
+
+
+########## 档 D：32 个参数（双向固定效应）##########
+
+. timer on 4
+
+. capture quietly gmm (wage_s - exp({q1}*do_1 + {q2}*do_2 + {q3}*do_3 + {q4}*do_4 + {q5}*do_5 + {q6}*do_6 + {q7}*do_7 + {q8}*do_8 + {q9}*do_
+> 9 + {q10}*do_10 + {q11}*do_11 + {q12}*do_12 + {q13}*do_13 + {q14}*do_14 + {q15}*do_15 + {q16}*do_16 + {r1}*dd_1 + {r2}*dd_2 + {r3}*dd_3 + 
+> {r4}*dd_4 + {r5}*dd_5 + {r6}*dd_6 + {r7}*dd_7 + {r8}*dd_8 + {r9}*dd_9 + {r10}*dd_10 + {r11}*dd_11 + {r12}*dd_12 + {r13}*dd_13 + {r14}*dd_1
+> 4 + {r15}*dd_15 + {b1}*ln_p)), instruments(do_1 do_2 do_3 do_4 do_5 do_6 do_7 do_8 do_9 do_10 do_11 do_12 do_13 do_14 do_15 do_16 dd_1 dd_
+> 2 dd_3 dd_4 dd_5 dd_6 dd_7 dd_8 dd_9 dd_10 dd_11 dd_12 dd_13 dd_14 dd_15 ln_p ln_p2) iterate(50) nolog
+
+. display "  返回码 = " _rc
+  返回码 = 0
+
+. timer off 4
+
+. timer list 4
+   4:      7.76 /        1 =       7.7590
+
+. 
+. display _n(2) "================ 耗时汇总（秒）================"
+
+
+================ 耗时汇总（秒）================
+
+. timer list
+   1:      3.57 /        1 =       3.5690
+   2:      0.38 /        1 =       0.3750
+   3:      1.47 /        1 =       1.4700
+   4:      7.76 /        1 =       7.7590
+
+. display _n "  参数个数：A=3  B=9  C=17  D=32"
+
+  参数个数：A=3  B=9  C=17  D=32
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\gmmbench_out.log
+  log type:  text
+ closed on:  26 Oct 2026, 09:27:09
+--------------------------------------------------------------------------------------------------------------------------------------------

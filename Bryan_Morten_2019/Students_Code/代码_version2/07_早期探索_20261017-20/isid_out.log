@@ -1,0 +1,109 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\isid_out.log
+  log type:  text
+ opened on:  19 Oct 2026, 18:08:01
+
+. 
+. * ---------- 1. isid 在正常情况下 ----------
+. clear
+
+. input long bcode double o_rural
+
+            bcode     o_rural
+  1. 1101 1
+  2. 1102 0
+  3. 1103 1
+  4. end
+
+. display _n "==== 1. isid bcode（编码都唯一，应成功）===="
+
+==== 1. isid bcode（编码都唯一，应成功）====
+
+. capture noisily isid bcode
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 0
+
+. 
+. * ---------- 2. isid 在编码撞车时 ----------
+. clear
+
+. input long bcode double o_rural
+
+            bcode     o_rural
+  1. 1101 1
+  2. 1101 0
+  3. 1102 0
+  4. end
+
+. display _n "==== 2. isid bcode（1101 撞车，应报错）===="
+
+==== 2. isid bcode（1101 撞车，应报错）====
+
+. capture noisily isid bcode
+variable bcode does not uniquely identify the observations
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 459
+
+. 
+. * ---------- 3. duplicates drop 能不能救回来 ----------
+. display _n "==== 3. duplicates drop（不加变量）能不能删掉撞车的行 ===="
+
+==== 3. duplicates drop（不加变量）能不能删掉撞车的行 ====
+
+. capture noisily duplicates drop
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+
+. count
+  3
+
+. list, noobs
+
+  +-----------------+
+  | bcode   o_rural |
+  |-----------------|
+  |  1101         1 |
+  |  1101         0 |
+  |  1102         0 |
+  +-----------------+
+
+. 
+. * ---------- 4. 用有重复 key 的表做 using 去 merge ----------
+. display _n "==== 4. merge m:1 遇到 using key 重复会怎样 ===="
+
+==== 4. merge m:1 遇到 using key 重复会怎样 ====
+
+. tempfile look
+
+. save `look'
+file C:\Users\任娜\AppData\Local\Temp\ST_1cd8_000001.tmp saved as .dta format
+
+. clear
+
+. input long bcode double moved
+
+            bcode       moved
+  1. 1101 0
+  2. 1102 1
+  3. end
+
+. capture noisily merge m:1 bcode using `look'
+variable bcode does not uniquely identify observations in the using data
+
+. display "返回码 _rc = " _rc
+返回码 _rc = 459
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\isid_out.log
+  log type:  text
+ closed on:  19 Oct 2026, 18:08:01
+-------------------------------------------------------------------------------

@@ -1,0 +1,174 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\fig1_out.log
+  log type:  text
+ opened on:  21 Oct 2026, 01:40:43
+
+. 
+. *---- 1. 载入 1995 年数据 ----
+. use year geo2_id1995 incwage perwt urban using "D:\研一上\微观计量\ipumsi_000
+> 02.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. count
+  718,837
+
+. 
+. *---- 2. 县级农村人口占比（用【全部人】算，不能只用有工资的人）----
+. bysort geo2_id1995: egen double tot_pop = total(perwt)
+
+. bysort geo2_id1995: egen double rur_pop = total((urban==1)*perwt)
+
+. gen double rshare = rur_pop/tot_pop
+
+. 
+. *---- 3. 县级平均月工资（只用【有有效工资】的人算）----
+. *   incwage 的缺失码：9999998 = UNKNOWN, 9999999 = NIU（未问）
+. gen double ww = perwt*incwage if incwage > 0 & incwage < 9999990
+(612,215 missing values generated)
+
+. gen double wp = perwt         if incwage > 0 & incwage < 9999990
+(612,215 missing values generated)
+
+. bysort geo2_id1995: egen double sum_w  = total(wp)
+
+. bysort geo2_id1995: egen double sum_ww = total(ww)
+
+. gen double wage_reg = sum_ww/sum_w
+
+. gen double ln_wage  = ln(wage_reg)
+
+. 
+. *---- 4. 每个县只留一行 ----
+. duplicates drop geo2_id1995, force
+
+Duplicates in terms of geo2_id1995
+
+(718,616 observations deleted)
+
+. count
+  221
+
+. display "有工资数据、且农民工数>0 的县数 = " r(N)
+有工资数据、且农民工数>0 的县数 = 221
+
+. 
+. *---- 5. 按中位数规则分农村县/城市县 ----
+. summarize rshare, detail
+
+                           rshare
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%     .0561367              0       Obs                 221
+25%     .4601601              0       Sum of wgt.         221
+
+50%     .7816971                      Mean           .6530562
+                        Largest       Std. dev.      .3242725
+75%     .8955271              1
+90%     .9364947              1       Variance       .1051527
+95%            1              1       Skewness      -.9867673
+99%            1              1       Kurtosis       2.507886
+
+. local med = r(p50)
+
+. display "县级农村占比中位数 = " `med'
+县级农村占比中位数 = .78169712
+
+. gen byte o_rural = (rshare > `med')
+
+. tab o_rural
+
+    o_rural |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |        111       50.23       50.23
+          1 |        110       49.77      100.00
+------------+-----------------------------------
+      Total |        221      100.00
+
+. 
+. *---- 6. 看三个密度的大致分布 ----
+. display _n "==== 对数平均工资的描述统计 ===="
+
+==== 对数平均工资的描述统计 ====
+
+. summarize ln_wage, detail
+
+                           ln_wage
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%     11.44664       11.34888
+ 5%     11.60744       11.35942
+10%     11.75701       11.44664       Obs                 221
+25%     11.89758       11.45376       Sum of wgt.         221
+
+50%     12.06284                      Mean           12.07718
+                        Largest       Std. dev.      .2891016
+75%     12.24561       12.74367
+90%     12.50677       12.77059       Variance       .0835797
+95%     12.60487        12.7911       Skewness       .2366153
+99%     12.77059       12.87676       Kurtosis       3.062546
+
+. display "--- 城市县 ---"
+--- 城市县 ---
+
+. summarize ln_wage if o_rural == 0, detail
+
+                           ln_wage
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%     11.51978       11.48375
+ 5%     11.60919       11.51978
+10%     11.77143       11.56521       Obs                 111
+25%     11.90366        11.5867       Sum of wgt.         111
+
+50%     12.09472                      Mean           12.10815
+                        Largest       Std. dev.      .2828558
+75%      12.3102       12.65044
+90%     12.50854       12.67812       Variance       .0800074
+95%     12.60543        12.7911       Skewness       .2077364
+99%      12.7911       12.87676       Kurtosis       2.870803
+
+. display "--- 农村县 ---"
+--- 农村县 ---
+
+. summarize ln_wage if o_rural == 1, detail
+
+                           ln_wage
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%     11.35942       11.34888
+ 5%     11.54675       11.35942
+10%     11.74703       11.44664       Obs                 110
+25%     11.87159       11.45376       Sum of wgt.         110
+
+50%     11.99435                      Mean           12.04592
+                        Largest       Std. dev.       .293239
+75%     12.18791       12.70426
+90%     12.49308       12.71294       Variance       .0859891
+95%     12.60487       12.74367       Skewness       .2928756
+99%     12.74367       12.77059       Kurtosis        3.27147
+
+. 
+. *---- 7. 画核密度图（三条曲线叠在一起）----
+. twoway (kdensity ln_wage if o_rural == 0) (kdensity ln_wage if o_rural == 1) 
+> (kdensity ln_wage), legend(order(1 "Urban" 2 "Rural" 3 "All") rows(1)) xtitle
+> ("log average monthly wage") ytitle("Kernel density") title("Figure 1: Distri
+> bution of wages, regency level (1995)")
+
+. 
+. *---- 8. 存成图片，方便放进 PPT ----
+. graph export "fig1_1995.png", replace width(1800)
+(file fig1_1995.png not found)
+file fig1_1995.png saved as PNG format
+
+. 
+. log close
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\fig1_out.log
+  log type:  text
+ closed on:  21 Oct 2026, 01:41:01
+-------------------------------------------------------------------------------

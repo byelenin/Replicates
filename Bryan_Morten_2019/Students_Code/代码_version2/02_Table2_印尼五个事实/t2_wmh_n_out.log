@@ -1,0 +1,230 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t2_wmh_n_out.log
+  log type:  text
+ opened on:  24 Oct 2026, 22:07:06
+
+. 
+. local root "D:\研一上\微观计量"
+
+. 
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  Table 2 加权口径（男性户主 15-65，[aw=单元人数]）的样本量"
+  Table 2 加权口径（男性户主 15-65，[aw=单元人数]）的样本量
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. 
+. use "`root'\复现\idn_od_panel_regency.dta", clear
+
+. display _n "  面板总观测（OD 县级对）= " %12.0fc _N
+
+  面板总观测（OD 县级对）=       12,891
+
+. 
+. keep if !missing(ln_dist)
+(264 observations deleted)
+
+. display "  剔除 ln_dist 缺失后      = " %12.0fc _N
+  剔除 ln_dist 缺失后      =       12,627
+
+. 
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  加权回归各自的 e(N)"
+  加权回归各自的 e(N)
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. display ""
+
+
+. 
+. display "  ----- (1) Fact 1：ln_p_mh 对 ln_dist，[aw = n_mh] -----"
+  ----- (1) Fact 1：ln_p_mh 对 ln_dist，[aw = n_mh] -----
+
+. reghdfe ln_p_mh ln_dist [aw = n_mh], absorb(o d) cluster(o)
+(MWFE estimator converged in 14 iterations)
+
+HDFE Linear regression                            Number of obs   =      8,514
+Absorbing 2 HDFE groups                           F(   1,    207) =     532.38
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.6908
+                                                  Adj R-squared   =     0.6750
+                                                  Within R-sq.    =     0.3993
+Number of clusters (o)       =        208         Root MSE        =     0.7340
+
+                                    (Std. err. adjusted for 208 clusters in o)
+------------------------------------------------------------------------------
+             |               Robust
+     ln_p_mh | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |  -.7136129    .030928   -23.07   0.000    -.7745872   -.6526386
+       _cons |  -.7268616   .1630969    -4.46   0.000    -1.048406   -.4053178
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |       208         208           0    *|
+           d |       208           1         207     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local N1 = e(N)
+
+. 
+. display _n "  ----- (2) Fact 2：ln_wage_mh 对 ln_dist，[aw = n_wage_mh] -----"
+
+  ----- (2) Fact 2：ln_wage_mh 对 ln_dist，[aw = n_wage_mh] -----
+
+. reghdfe ln_wage_mh ln_dist [aw = n_wage_mh], absorb(o d) cluster(o)
+(MWFE estimator converged in 13 iterations)
+
+HDFE Linear regression                            Number of obs   =      5,836
+Absorbing 2 HDFE groups                           F(   1,    207) =      13.00
+Statistics robust to heteroskedasticity           Prob > F        =     0.0004
+                                                  R-squared       =     0.3916
+                                                  Adj R-squared   =     0.3450
+                                                  Within R-sq.    =     0.0038
+Number of clusters (o)       =        208         Root MSE        =     0.4157
+
+                                    (Std. err. adjusted for 208 clusters in o)
+------------------------------------------------------------------------------
+             |               Robust
+  ln_wage_mh | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_dist |   .0302033    .008378     3.61   0.000     .0136862    .0467205
+       _cons |    12.3267   .0432252   285.17   0.000     12.24148    12.41192
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |       208         208           0    *|
+           d |       208           1         207     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local N2 = e(N)
+
+. 
+. display _n "  ----- (3) Fact 3：ln_wage_mh 对 ln_p_mh，[aw = n_wage_mh] -----"
+
+  ----- (3) Fact 3：ln_wage_mh 对 ln_p_mh，[aw = n_wage_mh] -----
+
+. reghdfe ln_wage_mh ln_p_mh [aw = n_wage_mh], absorb(o d) cluster(o)
+(MWFE estimator converged in 13 iterations)
+
+HDFE Linear regression                            Number of obs   =      5,836
+Absorbing 2 HDFE groups                           F(   1,    207) =       5.05
+Statistics robust to heteroskedasticity           Prob > F        =     0.0257
+                                                  R-squared       =     0.3902
+                                                  Adj R-squared   =     0.3435
+                                                  Within R-sq.    =     0.0015
+Number of clusters (o)       =        208         Root MSE        =     0.4162
+
+                                    (Std. err. adjusted for 208 clusters in o)
+------------------------------------------------------------------------------
+             |               Robust
+  ln_wage_mh | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_p_mh |   -.017296   .0076958    -2.25   0.026    -.0324681   -.0021238
+       _cons |   12.40412   .0348901   355.52   0.000     12.33533     12.4729
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |       208         208           0    *|
+           d |       208           1         207     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local N3 = e(N)
+
+. 
+. display _n "  ----- (4) Fact 4：ln_wage_mh 对 ln_p_mh 与 ln_dist，[aw = n_wage_mh] -----"
+
+  ----- (4) Fact 4：ln_wage_mh 对 ln_p_mh 与 ln_dist，[aw = n_wage_mh] -----
+
+. reghdfe ln_wage_mh ln_p_mh ln_dist [aw = n_wage_mh], absorb(o d) cluster(o)
+(MWFE estimator converged in 13 iterations)
+
+HDFE Linear regression                            Number of obs   =      5,836
+Absorbing 2 HDFE groups                           F(   2,    207) =       6.56
+Statistics robust to heteroskedasticity           Prob > F        =     0.0017
+                                                  R-squared       =     0.3916
+                                                  Adj R-squared   =     0.3449
+                                                  Within R-sq.    =     0.0038
+Number of clusters (o)       =        208         Root MSE        =     0.4158
+
+                                    (Std. err. adjusted for 208 clusters in o)
+------------------------------------------------------------------------------
+             |               Robust
+  ln_wage_mh | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     ln_p_mh |   .0014926   .0094972     0.16   0.875    -.0172312    .0202163
+     ln_dist |   .0312879   .0104827     2.98   0.003     .0106214    .0519545
+       _cons |   12.32787   .0444344   277.44   0.000     12.24027    12.41547
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+           o |       208         208           0    *|
+           d |       208           1         207     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local N4 = e(N)
+
+. 
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  ⭐ 结果（供 PPT 第 7 页 N 行使用）"
+  ⭐ 结果（供 PPT 第 7 页 N 行使用）
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. display "     Fact 1（列 1）加权 N        = " %10.0fc `N1'
+     Fact 1（列 1）加权 N        =      8,514
+
+. display "     Fact 2/3/4（列 2-4）加权 N  = " %10.0fc `N2'
+     Fact 2/3/4（列 2-4）加权 N  =      5,836
+
+. display ""
+
+
+. display "     PPT 写法（对照论文 25,540 / 25,244）："
+     PPT 写法（对照论文 25,540 / 25,244）：
+
+. display "       " %9.0fc `N1' " / " %9.0fc `N2'
+           8,514 /     5,836
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\t2_wmh_n_out.log
+  log type:  text
+ closed on:  24 Oct 2026, 22:07:10
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

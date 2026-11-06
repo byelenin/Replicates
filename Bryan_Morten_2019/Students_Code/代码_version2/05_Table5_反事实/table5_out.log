@@ -1,0 +1,852 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\table5_out.log
+  log type:  text
+ opened on:  24 Oct 2026, 19:02:52
+
+. 
+. local root "D:\研一上\微观计量"
+
+. 
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  Table 5 复现：削减迁移壁垒的产出收益"
+  Table 5 复现：削减迁移壁垒的产出收益
+
+. display "  运行时间：$S_DATE $S_TIME"
+  运行时间：24 Oct 2026 19:02:52
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. 
+. *==============================================================================
+. * 1. Mata
+. *==============================================================================
+. mata:
+------------------------------------------------- mata (type end to exit) ------------------------------------------------------------------------------------------------------------------------------
+: 
+: // ---------- 给定参数求均衡总产出 Y ----------
+: real scalar ge_solve(real rowvector Lo, real rowvector q, real matrix tau,
+>                      real rowvector w0, real rowvector a0,
+>                      real rowvector Abar, real rowvector abar,
+>                      real scalar theta, real scalar gamma, real scalar lambda,
+>                      real scalar sigma, real scalar noselect,
+>                      real scalar maxit, real scalar tol, real scalar damp,
+>                      real scalar verbose)
+> {
+>     real scalar no, nd, it, Y, err, floored
+>     real rowvector w, alpha, L, H, A, wnew, anew, denom
+>     real matrix ATT, P
+> 
+>     no = cols(Lo)
+>     nd = cols(w0)
+>     w = w0
+>     alpha = a0
+>     err = 1e10
+>     floored = 0
+>     Y = .
+> 
+>     for (it = 1; it <= maxit; it++) {
+>         ATT   = (1 :- tau) :* (J(no, 1, 1) * (w :* alpha))
+>         P     = ATT :^ theta
+>         denom = rowsum(P)
+>         P     = P :/ denom
+>         L     = Lo * P
+>         if (noselect == 1) H = (Lo :* q) * P
+>         else               H = (Lo :* q) * (P :^ (1 - 1/theta))
+>         if (min(H) <= 0) {
+>             floored = floored + 1
+>             H = H :+ 1e-12
+>         }
+>         A    = Abar :* (H :^ gamma)
+>         Y    = (sum((A :* H) :^ ((sigma - 1)/sigma))) ^ (sigma/(sigma - 1))
+>         wnew = (A :^ ((sigma - 1)/sigma)) :* (H :^ (-1/sigma)) :* (Y ^ (1/sigma))
+>         anew = abar :* (L :^ lambda)
+> 
+>         err = max(abs(wnew - w) :/ (abs(w) :+ 1e-12))
+>         err = max((err, max(abs(anew - alpha) :/ (abs(alpha) :+ 1e-12))))
+>         if (err < tol) {
+>             w = wnew
+>             alpha = anew
+>             break
+>         }
+>         w     = (1 - damp) * w     + damp * wnew
+>         alpha = (1 - damp) * alpha + damp * anew
+>     }
+>     if (verbose == 1) {
+>         if (err >= tol) printf("      ⚠ 未收敛：%f 次迭代，相对误差 %e\n", it, err)
+>         else            printf("      收敛：%f 次迭代\n", it)
+>         if (floored > 0) printf("      ⚠ H_d 触底 %f 次\n", floored)
+>     }
+>     return(Y)
+> }
+note: variable nd set but not used.
+
+: 
+: // ---------- 基准校准 ----------
+: void ge_calibrate(real rowvector Lo, real rowvector q, real matrix tau,
+>                   real rowvector wobs, real rowvector aobs,
+>                   real scalar theta, real scalar gamma, real scalar lambda,
+>                   real scalar sigma, real scalar noselect,
+>                   real rowvector Abar, real rowvector abar,
+>                   real rowvector Lmod, real scalar Ybase)
+> {
+>     real scalar no, nd
+>     real rowvector H, A, p, y, denom
+>     real matrix ATT, P
+> 
+>     no = cols(Lo)
+>     nd = cols(wobs)
+>     ATT   = (1 :- tau) :* (J(no, 1, 1) * (wobs :* aobs))
+>     P     = ATT :^ theta
+>     denom = rowsum(P)
+>     P     = P :/ denom
+>     Lmod  = Lo * P
+> 
+>     if (noselect == 1) H = (Lo :* q) * P
+>     else               H = (Lo :* q) * (P :^ (1 - 1/theta))
+> 
+>     Ybase = sum(wobs :* H)
+>     y     = ((wobs :* H) :^ (sigma/(sigma - 1))) :/ (Ybase ^ (1/(sigma - 1)))
+>     p     = (Ybase :/ y) :^ (1/sigma)
+>     A     = wobs :/ p
+>     Abar  = A :/ (H :^ gamma)
+>     abar  = aobs :/ (Lmod :^ lambda)
+> }
+note: variable nd set but not used.
+
+: 
+: // ---------- 主程序 ----------
+: void table5_do(real scalar theta,
+>                real rowvector W, real rowvector AL, real rowvector QQ,
+>                real rowvector LO, real matrix TAU)
+> {
+>     real scalar nd, gamma, lambda, sigma, maxit, tol, damp
+>     real scalar Ybase, Y, Ysave
+>     real rowvector Abar_b, abar_b, Abar_n, abar_n, Lmod_b, Lmod_n
+>     real rowvector b2
+>     real matrix tau_cf
+>     real scalar g11, g12, g13, g21, g22, g23
+> 
+>     nd = cols(W)
+>     gamma  = 0.05
+>     lambda = -0.075
+>     sigma  = 8
+>     maxit  = 20000
+>     tol    = 1e-13
+>     damp   = 0.5
+> 
+>     printf("\n")
+>     printf("  ── θ = %9.4f  （出发地 %f 个，目的地 %f 个）────────────\n", theta, cols(LO), nd)
+> 
+>     // ===== 基准校准（含比较优势）=====
+>     ge_calibrate(LO, QQ, TAU, W, AL, theta, gamma, lambda, sigma, 0,
+>                  Abar_b, abar_b, Lmod_b, Ybase)
+>     printf("  [含选择] 基准 Y = %16.6f\n", Ybase)
+> 
+>     // ===== 数值自检：τ 不变 ⇒ gain 必须 = 1 =====
+>     Ysave = ge_solve(LO, QQ, TAU, W, AL, Abar_b, abar_b,
+>                      theta, gamma, lambda, sigma, 0, maxit, tol, damp, 0)
+>     printf("  [自检] 不改 τ 时 Y = %16.6f   比值−1 = %16.12e  %s\n", Ysave, Ysave/Ybase-1, (abs(Ysave/Ybase-1)<1e-6 ? "✅ 校准正确":"❌ 校准或求解有误"))
+> 
+>     tau_cf = J(rows(TAU), cols(TAU), 0)
+>     g11 = ge_solve(LO, QQ, tau_cf, W, AL, Abar_b, abar_b, theta, gamma, lambda, sigma, 0, maxit, tol, damp, 1) / Ybase
+>     printf("    ① 迁移成本完全消除      gain = %8.4f\n", g11)
+>     b2 = J(1, nd, abar_b[1])
+>     g12 = ge_solve(LO, QQ, TAU, W, AL, Abar_b, b2, theta, gamma, lambda, sigma, 0, maxit, tol, damp, 1) / Ybase
+>     printf("    ② 舒适度完全拉平        gain = %8.4f\n", g12)
+>     g13 = ge_solve(LO, QQ, tau_cf, W, AL, Abar_b, b2, theta, gamma, lambda, sigma, 0, maxit, tol, damp, 1) / Ybase
+>     printf("    ③ 两者同时              gain = %8.4f\n", g13)
+> 
+>     // ===== No selection =====
+>     printf("  ── No selection：H_d 的内生项 π^{−1/θ} 置 1 ──\n")
+>     ge_calibrate(LO, QQ, TAU, W, AL, theta, gamma, lambda, sigma, 1,
+>                  Abar_n, abar_n, Lmod_n, Ybase)
+>     printf("  [无选择] 基准 Y = %16.6f\n", Ybase)
+>     g21 = ge_solve(LO, QQ, tau_cf, W, AL, Abar_n, abar_n, theta, gamma, lambda, sigma, 1, maxit, tol, damp, 1) / Ybase
+>     printf("    ① 迁移成本完全消除      gain = %8.4f\n", g21)
+>     b2 = J(1, nd, abar_n[1])
+>     g22 = ge_solve(LO, QQ, TAU, W, AL, Abar_n, b2, theta, gamma, lambda, sigma, 1, maxit, tol, damp, 1) / Ybase
+>     printf("    ② 舒适度完全拉平        gain = %8.4f\n", g22)
+>     g23 = ge_solve(LO, QQ, tau_cf, W, AL, Abar_n, b2, theta, gamma, lambda, sigma, 1, maxit, tol, damp, 1) / Ybase
+>     printf("    ③ 两者同时              gain = %8.4f\n", g23)
+> 
+>     st_matrix("ROWOUT", (theta, g11, g12, g13, g21, g22, g23, Ybase))
+> }
+note: variable Ybase may be used before set.
+note: variable Abar_b may be used before set.
+note: variable abar_b may be used before set.
+note: variable Abar_n may be used before set.
+note: variable abar_n may be used before set.
+note: variable Lmod_b may be used before set.
+note: variable Lmod_n may be used before set.
+note: variable Y unused.
+
+: end
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+. 
+. *==============================================================================
+. * 2. 重建印尼省级 OD 面板
+. *==============================================================================
+. display _n "===== 1. 重建 1995 年省级 OD 面板 ====="
+
+===== 1. 重建 1995 年省级 OD 面板 =====
+
+. 
+. use year bplid geo1_id incwage perwt relate sex age using "`root'\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. keep if sex == 1 & relate == 1 & inrange(age, 15, 65)
+(583,784 observations deleted)
+
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. keep if inrange(o, 11, 18) | inrange(o, 31, 35) | inrange(o, 51, 54)
+(1,491 observations deleted)
+
+. keep if inrange(d, 11, 18) | inrange(d, 31, 35) | inrange(d, 51, 54)
+(4,963 observations deleted)
+
+. 
+. gen byte hasw = !missing(incwage) & incwage > 0 & incwage < 9999999
+
+. gen double m_w  = perwt
+
+. gen double wx_w = perwt*incwage if hasw
+(80,101 missing values generated)
+
+. gen double wg_w = perwt if hasw
+(80,101 missing values generated)
+
+. collapse (sum) m_w wx_w wg_w, by(o d)
+
+. rename m_w  m_od
+
+. rename wx_w wsum
+
+. rename wg_w wden
+
+. gen double wage_od = wsum/wden if wden > 0 & !missing(wden)
+(15 missing values generated)
+
+. drop wsum wden
+
+. 
+. bysort o: egen double pop_o  = total(m_od)
+
+. bysort d: egen double m_in_d = total(m_od)
+
+. egen double pop_all = total(m_od)
+
+. gen double pi_do = m_od/pop_o
+
+. 
+. preserve
+
+.     keep if o == d
+(223 observations deleted)
+
+.     keep o pi_do
+
+.     rename pi_do pi_oo
+
+.     tempfile g_o
+
+.     save `g_o'
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_000002.tmp saved as .dta format
+
+.     rename o d
+
+.     rename pi_oo pi_dd
+
+.     tempfile g_d
+
+.     save `g_d'
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_000003.tmp saved as .dta format
+
+. restore
+
+. preserve
+
+.     keep o d pi_do
+
+.     rename o _t1
+
+.     rename d _t2
+
+.     rename _t1 d
+
+.     rename _t2 o
+
+.     rename pi_do pi_rev
+
+.     tempfile rev
+
+.     save `rev'
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_000005.tmp saved as .dta format
+
+. restore
+
+. 
+. keep if o != d
+(16 observations deleted)
+
+. merge m:1 o using `g_o', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             7
+        from master                         7  
+        from using                          0  
+
+    Matched                               216  
+    -----------------------------------------
+
+. merge m:1 d using `g_d', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               223  
+    -----------------------------------------
+
+. merge 1:1 o d using `rev', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            25
+        from master                        25  
+        from using                          0  
+
+    Matched                               198  
+    -----------------------------------------
+
+. 
+. gen double ln_p      = ln(pi_do)
+
+. gen double ln_p_rev  = ln(pi_rev)
+(25 missing values generated)
+
+. gen double ln_poo    = ln(pi_oo)
+(7 missing values generated)
+
+. gen double ln_pdd    = ln(pi_dd)
+
+. gen double ln_wage   = ln(wage_od) if !missing(wage_od) & wage_od > 0
+(15 missing values generated)
+
+. gen double pi_dnoto  = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+
+. gen double ln_pdnoto = ln(pi_dnoto) if pi_dnoto > 0
+
+. 
+. keep if pi_do > 0 & pi_rev > 0 & pi_oo > 0 & pi_dd > 0
+(0 observations deleted)
+
+. keep if !missing(ln_wage) & !missing(ln_pdnoto)
+(15 observations deleted)
+
+. display "  估计样本 N = " _N
+  估计样本 N = 208
+
+. 
+. preserve
+
+.     keep o
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(191 observations deleted)
+
+.     sort o
+
+.     mkmat o, matrix(OLIST)
+
+. restore
+
+. preserve
+
+.     keep d
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(192 observations deleted)
+
+.     sort d
+
+.     mkmat d, matrix(DLIST)
+
+. restore
+
+. local NO = rowsof(OLIST)
+
+. local ND = rowsof(DLIST)
+
+. display "  出发地数 = `NO'    目的地数 = `ND'"
+  出发地数 = 17    目的地数 = 16
+
+. local olist ""
+
+. forvalues i = 1/`NO' {
+  2.     local olist "`olist' `=OLIST[`i',1]'"
+  3. }
+
+. local dlist ""
+
+. forvalues i = 1/`ND' {
+  2.     local dlist "`dlist' `=DLIST[`i',1]'"
+  3. }
+
+. display "  出发地：`olist'"
+  出发地： 11 12 13 14 15 16 17 18 31 32 33 34 35 51 52 53 54
+
+. display "  目的地：`dlist'"
+  目的地： 11 12 13 14 15 16 17 18 31 32 33 34 35 51 52 53
+
+. 
+. *==============================================================================
+. * 3. 三套 θ
+. *==============================================================================
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  3. 三套 θ 分别估计与求解"
+  3. 三套 θ 分别估计与求解
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. 
+. tempfile panelmain tauobs o17 d17
+
+. matrix RESULTS = J(3, 8, .)
+
+. local rowi = 0
+
+. 
+. foreach TH of numlist 4.0869 12.4399 12.5836 {
+  2.     local rowi = `rowi' + 1
+  3.     display _n(2) "{hline 78}"
+  4.     display "  θ = `TH'   （第 `rowi' 套）"
+  5.     display "{hline 78}"
+  6. 
+.     * 上一轮保存的 panelmain 里已含这些变量，先清掉
+.     capture drop w_d
+  7.     capture drop q_o
+  8.     capture drop lhs_sym
+  9.     capture drop tau_obs
+ 10.     capture drop Zg
+ 11.     capture drop alpha_d
+ 12.     capture drop phat
+ 13.     capture drop tau_full
+ 14.     capture drop tau_use
+ 15. 
+.     * ---- (a) 式(7) IV ----
+.     quietly regress ln_p c.ln_pdnoto##c.ln_pdnoto
+ 16.     quietly predict double phat, xb
+ 17.     quietly ivregress 2sls ln_wage (ln_p = phat) i.o i.d, cluster(o)
+ 18.     display "  式(7) 自己估出的 θ = " %8.4f -1/_b[ln_p] "   （本次强制 θ = `TH'）"
+ 19.     quietly summarize wage_od
+ 20.     local v = r(Var)/(r(mean)^2)
+ 21.     local best = .
+ 22.     local bestd = 1e30
+ 23.     forvalues i = 205/4000 {
+ 24.         local tt = `i'/100
+ 25.         local rhs = exp(lngamma(1 - 2/`tt'))/(exp(lngamma(1 - 1/`tt'))^2) - 1
+ 26.         if abs(`rhs' - `v') < `bestd' {
+ 27.             local bestd = abs(`rhs' - `v')
+ 28.             local best = `tt'
+ 29.         }
+ 30.     }
+ 31.     local ttilde = `best'
+ 32.     display "  θ̃ = " %8.4f `ttilde' "   Γ̄ = Γ(1−1/θ̃) = " %10.6f exp(lngamma(1 - 1/`ttilde'))
+ 33. 
+.     * ---- w_d（按目的地 16 个）----
+.     quietly gen double w_d = .
+ 34.     forvalues i = 1/`ND' {
+ 35.         local cc : word `i' of `dlist'
+ 36.         if `cc' == `=DLIST[1,1]' local g = 0
+ 37.         else {
+ 38.             capture local g = _b[`cc'.d]
+ 39.             if _rc local g = .
+ 40.         }
+ 41.         quietly replace w_d = exp(_b[_cons] + `g' - lngamma(1 - 1/`ttilde')) if d == `cc'
+ 42.     }
+ 43.     quietly summarize w_d
+ 44.     display "  w_d：最小 = " %12.1f r(min) "   最大 = " %12.1f r(max) "   非缺失 = " %4.0f r(N)
+ 45. 
+.     * ---- q_o（按出发地 17 个）----
+.     quietly gen double q_o = .
+ 46.     forvalues i = 1/`NO' {
+ 47.         local cc : word `i' of `olist'
+ 48.         if `cc' == `=OLIST[1,1]' local h = 0
+ 49.         else {
+ 50.             capture local h = _b[`cc'.o]
+ 51.             if _rc local h = .
+ 52.         }
+ 53.         quietly replace q_o = exp(`h') if o == `cc'
+ 54.     }
+ 55.     quietly summarize q_o
+ 56.     display "  q_o：最小 = " %8.4f r(min) "   最大 = " %8.4f r(max) "   非缺失 = " %4.0f r(N)
+ 57. 
+.     * ---- (b) τ(θ) ----
+.     quietly gen double lhs_sym = (ln_p - ln_poo) + (ln_p_rev - ln_pdd)
+ 58.     quietly gen double tau_obs = 1 - exp(lhs_sym/(2*`TH'))
+ 59.     quietly summarize tau_obs
+ 60.     display "  τ（可算格子）：均值 = " %8.4f r(mean) "  范围 [" %8.4f r(min) ", " %8.4f r(max) "]  N = " %4.0f r(N)
+ 61. 
+.     * ---- (c) α_d(θ) ----
+.     quietly gen double Zg = ln_p - `TH'*ln(w_d) - lhs_sym/2
+ 62.     quietly regress Zg i.d i.o
+ 63.     local refd = .
+ 64.     capture local refd = _b[`=DLIST[1,1]'.d]
+ 65.     if _rc local refd = 0
+ 66.     quietly gen double alpha_d = .
+ 67.     forvalues i = 1/`ND' {
+ 68.         local cc : word `i' of `dlist'
+ 69.         if `cc' == `=DLIST[1,1]' local g = 0
+ 70.         else {
+ 71.             capture local g = _b[`cc'.d]
+ 72.             if _rc local g = .
+ 73.         }
+ 74.         quietly replace alpha_d = exp((`g' - `refd')/`TH') if d == `cc'
+ 75.     }
+ 76.     quietly summarize alpha_d
+ 77.     display "  α_d：最小 = " %8.4f r(min) "   最大 = " %8.4f r(max) "   非缺失 = " %4.0f r(N)
+ 78. 
+.     * ---- (d) 组装向量 ----
+.     tempname W AL QQ LO
+ 79.     matrix `W'  = J(1, `ND', .)
+ 80.     matrix `AL' = J(1, `ND', .)
+ 81.     matrix `QQ' = J(1, `NO', .)
+ 82.     matrix `LO' = J(1, `NO', .)
+ 83.     forvalues i = 1/`ND' {
+ 84.         local cc : word `i' of `dlist'
+ 85.         quietly summarize w_d if d == `cc'
+ 86.         matrix `W'[1, `i']  = r(mean)
+ 87.         quietly summarize alpha_d if d == `cc'
+ 88.         matrix `AL'[1, `i'] = r(mean)
+ 89.     }
+ 90.     forvalues i = 1/`NO' {
+ 91.         local cc : word `i' of `olist'
+ 92.         quietly summarize q_o if o == `cc'
+ 93.         matrix `QQ'[1, `i'] = r(mean)
+ 94.         quietly summarize pop_o if o == `cc'
+ 95.         matrix `LO'[1, `i'] = r(mean)
+ 96.     }
+ 97. 
+.     * ---- (e) 17×16 网格上的 τ ----
+.     quietly save `panelmain', replace
+ 98.     keep o d tau_obs
+ 99.     save `tauobs', replace
+100.     use `panelmain', clear
+101.     keep o
+102.     duplicates drop
+103.     rename o oo
+104.     sort oo
+105.     save `o17', replace
+106.     use `panelmain', clear
+107.     keep d
+108.     duplicates drop
+109.     rename d dd
+110.     sort dd
+111.     save `d17', replace
+112. 
+.     use `o17', clear
+113.     cross using `d17'
+114.     rename oo o
+115.     rename dd d
+116.     sort o d
+117.     display "  完整 OD 网格：" _N " 格"
+118.     merge 1:1 o d using `tauobs', keep(master match) nogen
+119.     quietly count if !missing(tau_obs)
+120.     display "  其中 τ 可观测：" r(N)
+121.     quietly regress tau_obs i.o i.d
+122.     quietly predict double tau_full, xb
+123.     quietly replace tau_full = 0 if o == d
+124.     quietly count if missing(tau_full)
+125.     display "  插值后仍缺失：" r(N)
+126.     sort o d
+127.     mkmat tau_full, matrix(TAUF)
+128.     display "  τ_full 行数 = " rowsof(TAUF) "  （应为 `NO'×`ND' = `=`NO'*`ND''）"
+129. 
+.     * ---- (f) Mata ----
+.     mata: table5_do(`TH', st_matrix("`W'"), st_matrix("`AL'"), st_matrix("`QQ'"), st_matrix("`LO'"), rowshape(st_matrix("TAUF"), `NO'))
+130.     forvalues j = 1/8 {
+131.         matrix RESULTS[`rowi', `j'] = ROWOUT[1, `j']
+132.     }
+133. 
+.     use `panelmain', clear
+134. }
+
+
+------------------------------------------------------------------------------
+  θ = 4.0869   （第 1 套）
+------------------------------------------------------------------------------
+  式(7) 自己估出的 θ =  12.5836   （本次强制 θ = 4.0869）
+  θ̃ =   4.0300   Γ̄ = Γ(1−1/θ̃) =   1.222948
+  w_d：最小 =     120720.9   最大 =     256840.9   非缺失 =  208
+  q_o：最小 =   0.6988   最大 =   1.2551   非缺失 =  208
+  τ（可算格子）：均值 =   0.7172  范围 [  0.4213,   0.8867]  N =  187
+  α_d：最小 =   0.6642   最大 =   1.2354   非缺失 =  208
+(file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_000009.tmp not found)
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_000009.tmp saved as .dta format
+
+Duplicates in terms of all variables
+
+(191 observations deleted)
+(file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_00000a.tmp not found)
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_00000a.tmp saved as .dta format
+
+Duplicates in terms of all variables
+
+(192 observations deleted)
+(file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_00000b.tmp not found)
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_00000b.tmp saved as .dta format
+  完整 OD 网格：272 格
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            64
+        from master                        64  
+        from using                          0  
+
+    Matched                               208  
+    -----------------------------------------
+  其中 τ 可观测：187
+  插值后仍缺失：0
+  τ_full 行数 = 272  （应为 17×16 = 272）
+
+  ── θ =    4.0869  （出发地 17 个，目的地 16 个）────────────
+  [含选择] 基准 Y =     6.828200e+12
+  [自检] 不改 τ 时 Y =     6.828200e+12   比值−1 = -1.332267630e-15  ✅ 校准正确
+      收敛：40 次迭代
+    ① 迁移成本完全消除      gain =   1.4666
+      收敛：43 次迭代
+    ② 舒适度完全拉平        gain =   1.0339
+      收敛：42 次迭代
+    ③ 两者同时              gain =   1.5052
+  ── No selection：H_d 的内生项 π^{−1/θ} 置 1 ──
+  [无选择] 基准 Y =     5.579282e+12
+      收敛：39 次迭代
+    ① 迁移成本完全消除      gain =   0.9688
+      收敛：42 次迭代
+    ② 舒适度完全拉平        gain =   1.0168
+      收敛：42 次迭代
+    ③ 两者同时              gain =   1.0104
+
+
+------------------------------------------------------------------------------
+  θ = 12.4399   （第 2 套）
+------------------------------------------------------------------------------
+  式(7) 自己估出的 θ =  12.5836   （本次强制 θ = 12.4399）
+  θ̃ =   4.0300   Γ̄ = Γ(1−1/θ̃) =   1.222948
+  w_d：最小 =     120720.9   最大 =     256840.9   非缺失 =  208
+  q_o：最小 =   0.6988   最大 =   1.2551   非缺失 =  208
+  τ（可算格子）：均值 =   0.3460  范围 [  0.1645,   0.5110]  N =  187
+  α_d：最小 =   0.5600   最大 =   1.1142   非缺失 =  208
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_000009.tmp saved as .dta format
+
+Duplicates in terms of all variables
+
+(191 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_00000a.tmp saved as .dta format
+
+Duplicates in terms of all variables
+
+(192 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_00000b.tmp saved as .dta format
+  完整 OD 网格：272 格
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            64
+        from master                        64  
+        from using                          0  
+
+    Matched                               208  
+    -----------------------------------------
+  其中 τ 可观测：187
+  插值后仍缺失：0
+  τ_full 行数 = 272  （应为 17×16 = 272）
+
+  ── θ =   12.4399  （出发地 17 个，目的地 16 个）────────────
+  [含选择] 基准 Y =     5.847654e+12
+  [自检] 不改 τ 时 Y =     5.847654e+12   比值−1 = -1.332267630e-15  ✅ 校准正确
+      收敛：40 次迭代
+    ① 迁移成本完全消除      gain =   1.1449
+      收敛：43 次迭代
+    ② 舒适度完全拉平        gain =   1.1192
+      收敛：43 次迭代
+    ③ 两者同时              gain =   1.2542
+  ── No selection：H_d 的内生项 π^{−1/θ} 置 1 ──
+  [无选择] 基准 Y =     5.576173e+12
+      收敛：40 次迭代
+    ① 迁移成本完全消除      gain =   0.9905
+      收敛：43 次迭代
+    ② 舒适度完全拉平        gain =   1.0921
+      收敛：43 次迭代
+    ③ 两者同时              gain =   1.1254
+
+
+------------------------------------------------------------------------------
+  θ = 12.5836   （第 3 套）
+------------------------------------------------------------------------------
+  式(7) 自己估出的 θ =  12.5836   （本次强制 θ = 12.5836）
+  θ̃ =   4.0300   Γ̄ = Γ(1−1/θ̃) =   1.222948
+  w_d：最小 =     120720.9   最大 =     256840.9   非缺失 =  208
+  q_o：最小 =   0.6988   最大 =   1.2551   非缺失 =  208
+  τ（可算格子）：均值 =   0.3429  范围 [  0.1628,   0.5070]  N =  187
+  α_d：最小 =   0.5594   最大 =   1.1139   非缺失 =  208
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_000009.tmp saved as .dta format
+
+Duplicates in terms of all variables
+
+(191 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_00000a.tmp saved as .dta format
+
+Duplicates in terms of all variables
+
+(192 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\dsh-SpnOPk\ST_4be0_00000b.tmp saved as .dta format
+  完整 OD 网格：272 格
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            64
+        from master                        64  
+        from using                          0  
+
+    Matched                               208  
+    -----------------------------------------
+  其中 τ 可观测：187
+  插值后仍缺失：0
+  τ_full 行数 = 272  （应为 17×16 = 272）
+
+  ── θ =   12.5836  （出发地 17 个，目的地 16 个）────────────
+  [含选择] 基准 Y =     5.843970e+12
+  [自检] 不改 τ 时 Y =     5.843970e+12   比值−1 = -1.332267630e-15  ✅ 校准正确
+      收敛：40 次迭代
+    ① 迁移成本完全消除      gain =   1.1432
+      收敛：43 次迭代
+    ② 舒适度完全拉平        gain =   1.1201
+      收敛：43 次迭代
+    ③ 两者同时              gain =   1.2532
+  ── No selection：H_d 的内生项 π^{−1/θ} 置 1 ──
+  [无选择] 基准 Y =     5.576161e+12
+      收敛：41 次迭代
+    ① 迁移成本完全消除      gain =   0.9906
+      收敛：43 次迭代
+    ② 舒适度完全拉平        gain =   1.0931
+      收敛：43 次迭代
+    ③ 两者同时              gain =   1.1263
+
+. 
+. *==============================================================================
+. * 4. 汇总
+. *==============================================================================
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  4. 汇总：本复现 vs 论文 Table 5"
+  4. 汇总：本复现 vs 论文 Table 5
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. display _n "  论文 Table 5（迁移成本 / 舒适度 / 两者）"
+
+  论文 Table 5（迁移成本 / 舒适度 / 两者）
+
+. display "     Baseline      1.075   1.127   1.217"
+     Baseline      1.075   1.127   1.217
+
+. display "     No selection  .914    1.127   1.133"
+     No selection  .914    1.127   1.133
+
+. display _n "  本复现："
+
+  本复现：
+
+. display "     θ        列(1)     列(2)     列(3)  |  NoSel(1)  NoSel(2)  NoSel(3)  |  基准 Y"
+     θ        列(1)     列(2)     列(3)  |  NoSel(1)  NoSel(2)  NoSel(3)  |  基准 Y
+
+. forvalues i = 1/3 {
+  2.     display "  " %8.4f RESULTS[`i',1] "  " %8.4f RESULTS[`i',2] "  " %8.4f RESULTS[`i',3] "  " %8.4f RESULTS[`i',4] "  |  " %8.4f RESULTS[`i',5] "  " %8.4f RESULTS[`i',6] "  " %8.4f RESULTS[`i',7
+> ] "  |  " %16.1f RESULTS[`i',8]
+  3. }
+    4.0869    1.4666    1.0339    1.5052  |    0.9688    1.0168    1.0104  |   5579282048408.8
+   12.4399    1.1449    1.1192    1.2542  |    0.9905    1.0921    1.1254  |   5576173488099.9
+   12.5836    1.1432    1.1201    1.2532  |    0.9906    1.0931    1.1263  |   5576161122697.6
+
+. 
+. display _n "  ── 定性结论检查 ──"
+
+  ── 定性结论检查 ──
+
+. forvalues i = 1/3 {
+  2.     display _n "  θ = " %8.4f RESULTS[`i',1]
+  3.     if RESULTS[`i',2] > 1 & RESULTS[`i',5] < 1 {
+  4.         display "    ✅ 符号翻转成立：含选择 " %7.4f RESULTS[`i',2] " > 1，无选择 " %7.4f RESULTS[`i',5] " < 1"
+  5.     }
+  6.     else {
+  7.         display "    ❌ 符号翻转不成立：含选择 " %7.4f RESULTS[`i',2] "，无选择 " %7.4f RESULTS[`i',5]
+  8.     }
+  9.     local gs = RESULTS[`i',4] - 1
+ 10.     local gn = RESULTS[`i',7] - 1
+ 11.     if `gs' > 0 {
+ 12.         display "    第(3)列低估幅度 = " %6.1f 100*(1 - `gn'/`gs') "%   （论文 40%）"
+ 13.     }
+ 14.     display "    列(2) 含选择 " %7.4f RESULTS[`i',3] " vs 无选择 " %7.4f RESULTS[`i',6] "   差 " %7.4f RESULTS[`i',6]-RESULTS[`i',3]
+ 15. }
+
+  θ =   4.0869
+    ✅ 符号翻转成立：含选择  1.4666 > 1，无选择  0.9688 < 1
+    第(3)列低估幅度 =   97.9%   （论文 40%）
+    列(2) 含选择  1.0339 vs 无选择  1.0168   差 -0.0171
+
+  θ =  12.4399
+    ✅ 符号翻转成立：含选择  1.1449 > 1，无选择  0.9905 < 1
+    第(3)列低估幅度 =   50.6%   （论文 40%）
+    列(2) 含选择  1.1192 vs 无选择  1.0921   差 -0.0271
+
+  θ =  12.5836
+    ✅ 符号翻转成立：含选择  1.1432 > 1，无选择  0.9906 < 1
+    第(3)列低估幅度 =   50.1%   （论文 40%）
+    列(2) 含选择  1.1201 vs 无选择  1.0931   差 -0.0270
+
+. 
+. display _n(2) "{hline 78}"
+
+
+------------------------------------------------------------------------------
+
+. display "  运行结束：$S_DATE $S_TIME"
+  运行结束：24 Oct 2026 19:03:03
+
+. display "{hline 78}"
+------------------------------------------------------------------------------
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\table5_out.log
+  log type:  text
+ closed on:  24 Oct 2026, 19:03:03
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

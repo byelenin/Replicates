@@ -1,0 +1,741 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\ppml_timing_out.log
+  log type:  text
+ opened on:  22 Oct 2026, 21:15:21
+
+. 
+. *==============================================================================
+. * 1-3. 建面板（同前）
+. *==============================================================================
+. import delimited "`fz'\idn_prov_dist25.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(3 vars, 625 obs)
+
+. destring o, replace
+o already numeric; no replace
+
+. destring d, replace
+d already numeric; no replace
+
+. destring dist_km, replace force
+dist_km already numeric; no replace
+
+. keep o d dist_km
+
+. tempfile iddist
+
+. save `iddist'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_000001.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_fips2usps.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(2 vars, 51 obs)
+
+. destring state_fips, replace
+state_fips already numeric; no replace
+
+. rename state_fips o
+
+. tempfile f2u
+
+. save `f2u'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_000002.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. rename o d
+
+. rename lat_o lat_d
+
+. rename lon_o lon_d
+
+. tempfile c_d
+
+. save `c_d'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_000003.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. tempfile c_o
+
+. save `c_o'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_000004.tmp saved as .dta format
+
+. 
+. use `c_o', clear
+
+. cross using `c_d'
+
+. gen double _pio = _pi/180
+
+. gen double _dla = (lat_d - lat_o)*_pio
+
+. gen double _dlo = (lon_d - lon_o)*_pio
+
+. gen double _a = sin(_dla/2)^2 + cos(lat_o*_pio)*cos(lat_d*_pio)*sin(_dlo/2)^2
+
+. gen double dist_km = 2*6371*asin(min(1, sqrt(_a)))
+
+. keep o d dist_km
+
+. tempfile usdist
+
+. save `usdist'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_000005.tmp saved as .dta format
+
+. 
+. * --- 美国 ---
+. import delimited "`ussrc'", clear varnames(1) colrange(1:5)
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 2,333,166 obs)
+
+. capture destring o, replace
+
+. capture destring d, replace
+
+. capture destring year, replace
+
+. capture destring wage, replace force
+
+. capture destring w, replace force
+
+. keep o d year wage w
+
+. drop if missing(o) | missing(d) | missing(year)
+(0 observations deleted)
+
+. drop if missing(w) | w <= 0
+(102 observations deleted)
+
+. keep if year == 1990
+(326,127 observations deleted)
+
+. gen byte hasw = !missing(wage) & wage > 0
+
+. gen byte one = 1
+
+. gen double wgt_wg = w if hasw
+(186,821 missing values generated)
+
+. gen double wx_w = w*wage if hasw
+(186,821 missing values generated)
+
+. gen double wage_ok = wage if hasw
+(186,821 missing values generated)
+
+. collapse (sum) m_wg=wgt_wg (sum) wx_w=wx_w (count) n_raw=one (count) n_wage=wage_ok, by(o d)
+
+. gen double wage_od = wx_w/m_wg if m_wg > 0
+(3 missing values generated)
+
+. rename m_wg m_od
+
+. keep if m_od > 0 & !missing(wage_od) & wage_od > 0
+(3 observations deleted)
+
+. bysort o: egen double pop_o = total(m_od)
+
+. bysort d: egen double m_in_d = total(m_od)
+
+. egen double pop_all = total(m_od)
+
+. gen double pi_do = m_od/pop_o
+
+. preserve
+
+.     keep if o == d
+(2,539 observations deleted)
+
+.     keep o pi_do
+
+.     rename pi_do pi_oo
+
+.     tempfile go
+
+.     save `go'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_000007.tmp saved as .dta format
+
+.     rename o d
+
+.     rename pi_oo pi_dd
+
+.     tempfile gd
+
+.     save `gd'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_000008.tmp saved as .dta format
+
+. restore
+
+. preserve
+
+.     keep o d pi_do
+
+.     rename o _t1
+
+.     rename d _t2
+
+.     rename _t1 d
+
+.     rename _t2 o
+
+.     rename pi_do pi_rev
+
+.     tempfile rv
+
+.     save `rv'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_00000a.tmp saved as .dta format
+
+. restore
+
+. gen double pi_dnoto = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+
+. keep if o != d
+(51 observations deleted)
+
+. merge m:1 o using `go', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+. merge m:1 d using `gd', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+. merge 1:1 o d using `rv', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            11
+        from master                        11  
+        from using                          0  
+
+    Matched                             2,528  
+    -----------------------------------------
+
+. merge 1:1 o d using `usdist', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+. keep if !missing(pi_do) & pi_do > 0
+(0 observations deleted)
+
+. keep if !missing(pi_rev) & pi_rev > 0
+(11 observations deleted)
+
+. keep if !missing(pi_oo) & pi_oo > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dd) & pi_dd > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dnoto) & pi_dnoto > 0
+(0 observations deleted)
+
+. keep if !missing(dist_km) & dist_km > 0
+(0 observations deleted)
+
+. keep if n_raw >= 5
+(84 observations deleted)
+
+. gen double ln_p      = ln(pi_do)
+
+. gen double ln_p_rev  = ln(pi_rev)
+
+. gen double ln_poo    = ln(pi_oo)
+
+. gen double ln_pdd    = ln(pi_dd)
+
+. gen double ln_pdnoto = ln(pi_dnoto)
+
+. gen double ln_wage   = ln(wage_od)
+
+. tempfile uspanel
+
+. save `uspanel'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_00000b.tmp saved as .dta format
+
+. quietly count
+
+. display "  美国面板：`r(N)' 个 OD 对"
+  美国面板：2444 个 OD 对
+
+. 
+. * --- 印尼 ---
+. use year bplid geo1_id incwage perwt relate sex age using "`root'\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. keep if sex == 1 & relate == 1 & inrange(age, 15, 65)
+(583,784 observations deleted)
+
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. keep if inrange(o, 11, 18) | inrange(o, 31, 35) | inrange(o, 51, 54)
+(1,491 observations deleted)
+
+. keep if inrange(d, 11, 18) | inrange(d, 31, 35) | inrange(d, 51, 54)
+(4,963 observations deleted)
+
+. gen byte hasw = !missing(incwage) & incwage > 0 & incwage < 9999999
+
+. gen byte one = 1
+
+. gen double wgt_wg = perwt if hasw
+(80,101 missing values generated)
+
+. gen double wx_w = perwt*incwage if hasw
+(80,101 missing values generated)
+
+. gen double wage_ok = incwage if hasw
+(80,101 missing values generated)
+
+. collapse (sum) m_wg=wgt_wg (sum) wx_w=wx_w (count) n_raw=one (count) n_wage=wage_ok, by(o d)
+
+. gen double wage_od = wx_w/m_wg if m_wg > 0
+(15 missing values generated)
+
+. rename m_wg m_od
+
+. keep if m_od > 0 & !missing(wage_od) & wage_od > 0
+(15 observations deleted)
+
+. bysort o: egen double pop_o = total(m_od)
+
+. bysort d: egen double m_in_d = total(m_od)
+
+. egen double pop_all = total(m_od)
+
+. gen double pi_do = m_od/pop_o
+
+. preserve
+
+.     keep if o == d
+(208 observations deleted)
+
+.     keep o pi_do
+
+.     rename pi_do pi_oo
+
+.     tempfile igo
+
+.     save `igo'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_00000d.tmp saved as .dta format
+
+.     rename o d
+
+.     rename pi_oo pi_dd
+
+.     tempfile igd
+
+.     save `igd'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_00000e.tmp saved as .dta format
+
+. restore
+
+. preserve
+
+.     keep o d pi_do
+
+.     rename o _t1
+
+.     rename d _t2
+
+.     rename _t1 d
+
+.     rename _t2 o
+
+.     rename pi_do pi_rev
+
+.     tempfile irv
+
+.     save `irv'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_00000g.tmp saved as .dta format
+
+. restore
+
+. gen double pi_dnoto = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+
+. keep if o != d
+(16 observations deleted)
+
+. merge m:1 o using `igo', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             4
+        from master                         4  
+        from using                          0  
+
+    Matched                               204  
+    -----------------------------------------
+
+. merge m:1 d using `igd', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               208  
+    -----------------------------------------
+
+. merge 1:1 o d using `irv', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            32
+        from master                        32  
+        from using                          0  
+
+    Matched                               176  
+    -----------------------------------------
+
+. merge 1:1 o d using `iddist', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             4
+        from master                         4  
+        from using                          0  
+
+    Matched                               204  
+    -----------------------------------------
+
+. keep if !missing(pi_do) & pi_do > 0
+(0 observations deleted)
+
+. keep if !missing(pi_rev) & pi_rev > 0
+(32 observations deleted)
+
+. keep if !missing(pi_oo) & pi_oo > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dd) & pi_dd > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dnoto) & pi_dnoto > 0
+(0 observations deleted)
+
+. keep if !missing(dist_km) & dist_km > 0
+(0 observations deleted)
+
+. keep if n_raw >= 5
+(25 observations deleted)
+
+. gen double ln_p      = ln(pi_do)
+
+. gen double ln_p_rev  = ln(pi_rev)
+
+. gen double ln_poo    = ln(pi_oo)
+
+. gen double ln_pdd    = ln(pi_dd)
+
+. gen double ln_pdnoto = ln(pi_dnoto)
+
+. gen double ln_wage   = ln(wage_od)
+
+. tempfile idpanel
+
+. save `idpanel'
+file C:\Users\任娜\AppData\Local\Temp\ST_82c4_00000h.tmp saved as .dta format
+
+. quietly count
+
+. display "  印尼面板：`r(N)' 个 OD 对"
+  印尼面板：151 个 OD 对
+
+. 
+. *==============================================================================
+. * 4. 计时：单次 ppmlhdfe
+. *==============================================================================
+. display _n(2) "===== 4. 单次 ppmlhdfe 的耗时 ====="
+
+
+===== 4. 单次 ppmlhdfe 的耗时 =====
+
+. 
+. use `idpanel', clear
+
+. quietly regress ln_p c.ln_pdnoto##c.ln_pdnoto
+
+. quietly predict double phat, xb
+
+. quietly reghdfe ln_p phat, absorb(o d) residuals(u)
+
+. timer clear 1
+
+. timer on 1
+
+. quietly ppmlhdfe wage_od ln_p u, absorb(o d) cluster(o)
+
+. timer off 1
+
+. timer list 1
+   1:      0.33 /        1 =       0.3260
+
+. display "  印尼单次 PPML（17 省 × 2 = 34 个固定效应）"
+  印尼单次 PPML（17 省 × 2 = 34 个固定效应）
+
+. 
+. use `uspanel', clear
+
+. quietly regress ln_p c.ln_pdnoto##c.ln_pdnoto
+
+. quietly predict double phat, xb
+
+. quietly reghdfe ln_p phat, absorb(o d) residuals(u)
+
+. timer clear 2
+
+. timer on 2
+
+. quietly ppmlhdfe wage_od ln_p u, absorb(o d) cluster(o)
+
+. timer off 2
+
+. timer list 2
+   2:      0.15 /        1 =       0.1490
+
+. display "  美国单次 PPML（51 州 × 2 = 102 个固定效应）"
+  美国单次 PPML（51 州 × 2 = 102 个固定效应）
+
+. 
+. *==============================================================================
+. * 5. 定义一次完整估计（θ 和 ρ）
+. *==============================================================================
+. capture program drop onepass
+
+. program define onepass, rclass
+  1.     capture drop phat
+  2.     capture drop u
+  3.     quietly regress ln_p c.ln_pdnoto##c.ln_pdnoto
+  4.     quietly predict double phat, xb
+  5.     quietly capture reghdfe ln_p phat, absorb(o d) residuals(u)
+  6.     if _rc != 0 {
+  7.         return scalar theta = .
+  8.         return scalar thetat = .
+  9.         return scalar rho = .
+ 10.         exit
+ 11.     }
+ 12.     quietly capture ppmlhdfe wage_od ln_p u, absorb(o d)
+ 13.     if _rc != 0 {
+ 14.         return scalar theta = .
+ 15.         return scalar thetat = .
+ 16.         return scalar rho = .
+ 17.         exit
+ 18.     }
+ 19.     local beta = _b[ln_p]
+ 20.     if `beta' >= 0 {
+ 21.         return scalar theta = .
+ 22.         return scalar thetat = .
+ 23.         return scalar rho = .
+ 24.         exit
+ 25.     }
+ 26.     local theta = -1/`beta'
+ 27. 
+.     quietly summarize wage_od
+ 28.     local V = r(Var)/r(mean)^2
+ 29.     local best = .
+ 30.     local bestv = .
+ 31.     forvalues i = 205/3000 {
+ 32.         local tt = `i'/100
+ 33.         local rhs = exp(lngamma(1-2/`tt'))/(exp(lngamma(1-1/`tt'))^2) - 1
+ 34.         local df = abs(`rhs' - `V')
+ 35.         if `bestv' == . | `df' < `bestv' {
+ 36.             local bestv = `df'
+ 37.             local best = `tt'
+ 38.         }
+ 39.     }
+ 40.     local c0 = `best' - 0.05
+ 41.     local bestv = .
+ 42.     forvalues i = 0/100 {
+ 43.         local tt = `c0' + `i'*0.001
+ 44.         if `tt' > 2 {
+ 45.             local rhs = exp(lngamma(1-2/`tt'))/(exp(lngamma(1-1/`tt'))^2) - 1
+ 46.             local df = abs(`rhs' - `V')
+ 47.             if `bestv' == . | `df' < `bestv' {
+ 48.                 local bestv = `df'
+ 49.                 local best = `tt'
+ 50.             }
+ 51.         }
+ 52.     }
+ 53.     return scalar theta  = `theta'
+ 54.     return scalar thetat = `best'
+ 55.     return scalar rho    = 1 - `best'/`theta'
+ 56. end
+
+. 
+. *==============================================================================
+. * 6. 计时：完整一次估计
+. *==============================================================================
+. display _n(2) "===== 6. 完整一次估计（θ + ρ）====="
+
+
+===== 6. 完整一次估计（θ + ρ）=====
+
+. 
+. use `idpanel', clear
+
+. timer clear 3
+
+. timer on 3
+
+. quietly onepass
+
+. timer off 3
+
+. timer list 3
+   3:      0.26 /        1 =       0.2580
+
+. display "  印尼 θ = " %8.4f r(theta) "   θ̃ = " %7.4f r(thetat) "   ρ = " %7.4f r(rho)
+  印尼 θ =  10.3728   θ̃ =  4.3690   ρ =  0.5788
+
+. 
+. use `uspanel', clear
+
+. timer clear 4
+
+. timer on 4
+
+. quietly onepass
+
+. timer off 4
+
+. timer list 4
+   4:      0.29 /        1 =       0.2920
+
+. display "  美国 θ = " %8.4f r(theta) "   θ̃ = " %7.4f r(thetat) "   ρ = " %7.4f r(rho)
+  美国 θ =  30.2548   θ̃ =  6.2750   ρ =  0.7926
+
+. 
+. *==============================================================================
+. * 7. 实测：跑 B=20 轮 bootstrap，量出每轮真实耗时
+. *==============================================================================
+. display _n(2) "===== 7. 实测 bootstrap 速度（B=20）====="
+
+
+===== 7. 实测 bootstrap 速度（B=20）=====
+
+. 
+. local Btest = 20
+
+. set seed 20191029
+
+. 
+. capture program drop boottime
+
+. program define boottime
+  1.     args cl Btest
+  2.     timer clear 5
+  3.     timer on 5
+  4.     forvalues b = 1/`Btest' {
+  5.         preserve
+  6.         quietly bsample, cluster(`cl') idcluster(bsid2)
+  7.         quietly capture onepass
+  8.         restore
+  9.     }
+ 10.     timer off 5
+ 11. end
+
+. 
+. foreach cc in id us {
+  2.     if "`cc'" == "id" {
+  3.         use `idpanel', clear
+  4.         local lab "印尼"
+  5.     }
+  6.     if "`cc'" == "us" {
+  7.         use `uspanel', clear
+  8.         local lab "美国"
+  9.     }
+ 10.     quietly boottime o `Btest'
+ 11.     display "  ── `lab' 跑完 `Btest' 轮 bootstrap，计时器 5 显示："
+ 12.     timer list 5
+ 13.     display "  ── `lab' 结束"
+ 14. }
+  ── 印尼 跑完 20 轮 bootstrap，计时器 5 显示：
+   5:      3.89 /        1 =       3.8860
+  ── 印尼 结束
+  ── 美国 跑完 20 轮 bootstrap，计时器 5 显示：
+   5:      6.54 /        1 =       6.5420
+  ── 美国 结束
+
+. 
+. *==============================================================================
+. * 8. 汇总
+. *==============================================================================
+. display _n(2) "{hline 80}"
+
+
+--------------------------------------------------------------------------------
+
+. display "  计时汇总（看上面的 timer list 输出）"
+  计时汇总（看上面的 timer list 输出）
+
+. display "{hline 80}"
+--------------------------------------------------------------------------------
+
+. display "  把「20 轮 bootstrap」的秒数 × 10 就是 B=200 的估计时间。"
+  把「20 轮 bootstrap」的秒数 × 10 就是 B=200 的估计时间。
+
+. display "  印尼和美国都要跑，所以总时间 = 两者相加。"
+  印尼和美国都要跑，所以总时间 = 两者相加。
+
+. 
+. log close
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\ppml_timing_out.log
+  log type:  text
+ closed on:  22 Oct 2026, 21:15:52
+------------------------------------------------------------------------------------------------------------------------------------------------------

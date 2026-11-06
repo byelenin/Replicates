@@ -1,0 +1,207 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\rawReg_out.log
+  log type:  text
+ opened on:  18 Oct 2026, 21:21:48
+
+. 
+. use year geo2_id1995 id1995a_bplreg id1995a_prevreg ///
+>     using "D:\研一上\微观计量\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. count
+  718,837
+
+. 
+. * ---- 解码三套编码 ----
+. capture decode id1995a_bplreg, gen(bplname)
+
+. display "decode bplreg  rc = " _rc
+decode bplreg  rc = 0
+
+. capture decode id1995a_prevreg, gen(prevname)
+
+. display "decode prevreg rc = " _rc
+decode prevreg rc = 0
+
+. capture decode geo2_id1995, gen(nowname)
+
+. display "decode geo2_id1995 rc = " _rc
+decode geo2_id1995 rc = 0
+
+. 
+. foreach v in id1995a_bplreg id1995a_prevreg geo2_id1995 {
+  2.     qui levelsof `v', local(lv)
+  3.     local n : word count `lv'
+  4.     display "`v' 的不同取值数 = `n'"
+  5. }
+id1995a_bplreg 的不同取值数 = 303
+id1995a_prevreg 的不同取值数 = 302
+geo2_id1995 的不同取值数 = 221
+
+. 
+. * ---- 导出三套县名清单 ----
+. preserve
+
+.     keep id1995a_bplreg bplname
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(718,534 observations deleted)
+
+.     drop if missing(id1995a_bplreg)
+(0 observations deleted)
+
+.     rename id1995a_bplreg code
+
+.     gen long prov = floor(code/100)
+
+.     export delimited code prov bplname using "..\..\idn_geo\raw_bplreg_names.
+> csv", replace nolabel
+(file ..\..\idn_geo\raw_bplreg_names.csv not found)
+file ..\..\idn_geo\raw_bplreg_names.csv saved
+
+.     count
+  303
+
+.     display "  -> 出生县清单已导出，N = " r(N)
+  -> 出生县清单已导出，N = 303
+
+. restore
+
+. 
+. preserve
+
+.     keep id1995a_prevreg prevname
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(718,535 observations deleted)
+
+.     drop if missing(id1995a_prevreg)
+(0 observations deleted)
+
+.     rename id1995a_prevreg code
+
+.     gen long prov = floor(code/100)
+
+.     export delimited code prov prevname using "..\..\idn_geo\raw_prevreg_name
+> s.csv", replace nolabel
+(file ..\..\idn_geo\raw_prevreg_names.csv not found)
+file ..\..\idn_geo\raw_prevreg_names.csv saved
+
+.     count
+  302
+
+.     display "  -> 前居住县清单已导出，N = " r(N)
+  -> 前居住县清单已导出，N = 302
+
+. restore
+
+. 
+. preserve
+
+.     keep geo2_id1995 nowname
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(718,616 observations deleted)
+
+.     drop if missing(geo2_id1995)
+(0 observations deleted)
+
+.     rename geo2_id1995 code
+
+.     gen long prov = floor(code/1000)
+
+.     export delimited code prov nowname using "..\..\idn_geo\geo1995_names.csv
+> ", replace nolabel
+(file ..\..\idn_geo\geo1995_names.csv not found)
+file ..\..\idn_geo\geo1995_names.csv saved
+
+.     count
+  221
+
+.     display "  -> 现居县清单已导出，N = " r(N)
+  -> 现居县清单已导出，N = 221
+
+. restore
+
+. 
+. * ---- 三套编码的县名是否一致？抽 25 个看 ----
+. display ""
+
+
+. display "==== 三套编码对照（同一批人，前 25 个非缺失）===="
+==== 三套编码对照（同一批人，前 25 个非缺失）====
+
+. preserve
+
+.     keep if !missing(id1995a_bplreg) & !missing(geo2_id1995)
+(0 observations deleted)
+
+.     keep id1995a_bplreg bplname geo2_id1995 nowname
+
+.     duplicates drop
+
+Duplicates in terms of all variables
+
+(704,293 observations deleted)
+
+.     sort id1995a_bplreg
+
+.     list id1995a_bplreg bplname geo2_id1995 nowname in 1/25, noobs
+
+  +-------------------------------------------------------------+
+  | id1995~g      bplname    geo2_id1995                nowname |
+  |-------------------------------------------------------------|
+  | south ac   south aceh   tangerang, c        tangerang, city |
+  | south ac   south aceh        sibolga                sibolga |
+  | south ac   south aceh   padang panja         padang panjang |
+  | south ac   south aceh          medan                  medan |
+  | south ac   south aceh   central aceh           central aceh |
+  |-------------------------------------------------------------|
+  | south ac   south aceh   southeast ac         southeast aceh |
+  | south ac   south aceh    sawah lunto            sawah lunto |
+  | south ac   south aceh          batam                  batam |
+  | south ac   south aceh     south aceh             south aceh |
+  | south ac   south aceh   banjarnegara           banjarnegara |
+  |-------------------------------------------------------------|
+  | south ac   south aceh     aceh utara             aceh utara |
+  | south ac   south aceh      palembang              palembang |
+  | south ac   south aceh   tebing tingg          tebing tinggi |
+  | south ac   south aceh   south jakart          south jakarta |
+  | south ac   south aceh   east jakarta           east jakarta |
+  |-------------------------------------------------------------|
+  | south ac   south aceh   central tapa       central tapanuli |
+  | south ac   south aceh        langkat                langkat |
+  | south ac   south aceh      bengkalis              bengkalis |
+  | south ac   south aceh   pematang sia       pematang siantar |
+  | south ac   south aceh   sawahlunto/s   sawahlunto/sijunjung |
+  |-------------------------------------------------------------|
+  | south ac   south aceh     banda aceh             banda aceh |
+  | south ac   south aceh      west aceh              west aceh |
+  | south ac   south aceh   north jakart          north jakarta |
+  | south ac   south aceh          dairi                  dairi |
+  | south ac   south aceh         sabang                 sabang |
+  +-------------------------------------------------------------+
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\任娜\Documents\deepseek-harness\default-workspace\bm2019_
+> replication\stata\rawReg_out.log
+  log type:  text
+ closed on:  18 Oct 2026, 21:22:15
+-------------------------------------------------------------------------------

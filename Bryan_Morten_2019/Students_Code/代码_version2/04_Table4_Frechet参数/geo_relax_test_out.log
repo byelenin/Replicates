@@ -1,0 +1,326 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\geo_relax_test_out.log
+  log type:  text
+ opened on:  26 Oct 2026, 13:29:53
+
+. 
+. local root "D:\研一上\微观计量"
+
+. local fz   "`root'\复现"
+
+. * program 内部看不到 local，必须用 global
+. global ROOT "`root'"
+
+. 
+. import delimited "`fz'\idn_prov_dist25.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(3 vars, 625 obs)
+
+. keep o d dist_km
+
+. tempfile dist25
+
+. save `dist25'
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000001.tmp saved as .dta format
+
+. global DIST25 "`dist25'"
+
+. display "  省级距离表：25 省的 " _N " 个 OD 对"
+  省级距离表：25 省的 625 个 OD 对
+
+. 
+. *------------------------------------------------------------------------------
+. * 建面板的子程序（参数 1 = 是否也限制 o）
+. *------------------------------------------------------------------------------
+. capture program drop buildpanel
+
+. program define buildpanel
+  1.     args restrictO
+  2.     local dist25x "$DIST25"
+  3.     use year bplid geo1_id incwage perwt relate sex age using "$ROOT\ipumsi_00002.dta", clear
+  4.     keep if year == 1995
+  5.     keep if sex == 1 & relate == 1 & inrange(age, 15, 65)
+  6.     gen int o = bplid
+  7.     gen int d = geo1_id - 360000
+  8.     * d：现居地本来就只有这 17 个省
+.     keep if inrange(d, 11, 18) | inrange(d, 31, 35) | inrange(d, 51, 54)
+  9.     if `restrictO' == 1 {
+ 10.         * 现状：对 o 也套用同一范围（这一步是代码设定，不是数据限制）
+.         keep if inrange(o, 11, 18) | inrange(o, 31, 35) | inrange(o, 51, 54)
+ 11.     }
+ 12.     gen byte hasw   = !missing(incwage) & incwage > 0 & incwage < 9999999
+ 13.     gen double m_w  = perwt
+ 14.     gen double wx_w = perwt*incwage if hasw
+ 15.     gen double wg_w = perwt if hasw
+ 16.     collapse (sum) m_w wx_w wg_w, by(o d)
+ 17.     rename m_w  m_od
+ 18.     rename wx_w wsum
+ 19.     rename wg_w wden
+ 20.     gen double wage_od = wsum/wden if wden > 0 & !missing(wden)
+ 21.     drop wsum wden
+ 22. 
+.     bysort o: egen double pop_o  = total(m_od)
+ 23.     bysort d: egen double m_in_d = total(m_od)
+ 24.     egen double pop_all = total(m_od)
+ 25.     gen double pi_do = m_od/pop_o
+ 26. 
+.     preserve
+ 27.         keep if o == d
+ 28.         keep o pi_do
+ 29.         rename pi_do pi_oo
+ 30.         tempfile go
+ 31.         save `go'
+ 32.         rename o d
+ 33.         rename pi_oo pi_dd
+ 34.         tempfile gd
+ 35.         save `gd'
+ 36.     restore
+ 37.     preserve
+ 38.         keep o d pi_do
+ 39.         rename o _t1
+ 40.         rename d _t2
+ 41.         rename _t1 d
+ 42.         rename _t2 o
+ 43.         rename pi_do pi_rev
+ 44.         tempfile rv
+ 45.         save `rv'
+ 46.     restore
+ 47. 
+.     gen double pi_dnoto = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+ 48.     keep if o != d
+ 49.     merge m:1 o using `go', keep(master match) nogen
+ 50.     merge m:1 d using `gd', keep(master match) nogen
+ 51.     merge 1:1 o d using `rv', keep(master match) nogen
+ 52.     merge 1:1 o d using `dist25x', keep(master match) nogen
+ 53. 
+.     keep if !missing(pi_do)     & pi_do     > 0
+ 54.     keep if !missing(pi_rev)    & pi_rev    > 0
+ 55.     keep if !missing(pi_oo)     & pi_oo     > 0
+ 56.     keep if !missing(pi_dd)     & pi_dd     > 0
+ 57.     keep if !missing(pi_dnoto)  & pi_dnoto  > 0
+ 58.     keep if !missing(dist_km)   & dist_km   > 0
+ 59.     gen double ln_p      = ln(pi_do)
+ 60.     gen double ln_pdnoto = ln(pi_dnoto)
+ 61.     gen double ln_wage   = ln(wage_od) if !missing(wage_od) & wage_od > 0
+ 62. end
+
+. 
+. *------------------------------------------------------------------------------
+. display _n(2) "{hline 88}"
+
+
+----------------------------------------------------------------------------------------
+
+. display "  设定 A：现状（o 与 d 都限制在同一批省份）"
+  设定 A：现状（o 与 d 都限制在同一批省份）
+
+. display "{hline 88}"
+----------------------------------------------------------------------------------------
+
+. buildpanel 1
+(23,603,049 observations deleted)
+(583,784 observations deleted)
+(5,048 observations deleted)
+(1,406 observations deleted)
+(80,101 missing values generated)
+(80,101 missing values generated)
+(15 missing values generated)
+(223 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000003.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000004.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000006.tmp saved as .dta format
+(16 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             7
+        from master                         7  
+        from using                          0  
+
+    Matched                               216  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               223  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            25
+        from master                        25  
+        from using                          0  
+
+    Matched                               198  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             7
+        from master                         7  
+        from using                          0  
+
+    Matched                               216  
+    -----------------------------------------
+(0 observations deleted)
+(25 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(11 missing values generated)
+
+. quietly count
+
+. display "  OD 单元数 = " r(N)
+  OD 单元数 = 198
+
+. quietly levelsof o, local(OA)
+
+. display "  出发地省数 = " wordcount("`OA'")
+  出发地省数 = 16
+
+. tempfile pa
+
+. save `pa'
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000002.tmp saved as .dta format
+
+. 
+. display _n(2) "{hline 88}"
+
+
+----------------------------------------------------------------------------------------
+
+. display "  设定 B：放宽（只限制 d，o 放开）"
+  设定 B：放宽（只限制 d，o 放开）
+
+. display "{hline 88}"
+----------------------------------------------------------------------------------------
+
+. buildpanel 0
+(23,603,049 observations deleted)
+(583,784 observations deleted)
+(5,048 observations deleted)
+(80,894 missing values generated)
+(80,894 missing values generated)
+(48 missing values generated)
+(351 observations deleted)
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000004.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000005.tmp saved as .dta format
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000007.tmp saved as .dta format
+(16 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                           135
+        from master                       135  
+        from using                          0  
+
+    Matched                               216  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               351  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                           153
+        from master                       153  
+        from using                          0  
+
+    Matched                               198  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            28
+        from master                        28  
+        from using                          0  
+
+    Matched                               323  
+    -----------------------------------------
+(0 observations deleted)
+(153 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(0 observations deleted)
+(11 missing values generated)
+
+. quietly count
+
+. display "  OD 单元数 = " r(N)
+  OD 单元数 = 198
+
+. quietly levelsof o, local(OB)
+
+. display "  出发地省数 = " wordcount("`OB'")
+  出发地省数 = 16
+
+. tempfile pb
+
+. save `pb'
+file C:\Users\任娜\AppData\Local\Temp\ST_3d84_000003.tmp saved as .dta format
+
+. 
+. *------------------------------------------------------------------------------
+. display _n(2) "{hline 88}"
+
+
+----------------------------------------------------------------------------------------
+
+. display "  对比：论文式(7)估出的 ν(θ)"
+  对比：论文式(7)估出的 ν(θ)
+
+. display "{hline 88}"
+----------------------------------------------------------------------------------------
+
+. display "  论文印尼 θ = 12.5  (1.36)"
+  论文印尼 θ = 12.5  (1.36)
+
+. display ""
+
+
+. display "  %-14s %10s %10s %12s"  "设定" "出发地省数" "OD 单元数" "式(7) θ"
+  %-14s %10s %10s %12s设定出发地省数OD 单元数式(7) θ
+
+. foreach s in "A `pa'" "B `pb'" {
+  2.     local tag : word 1 of `s'
+  3.     local f   : word 2 of `s'
+  4.     use `f', clear
+  5.     quietly count
+  6.     local n = r(N)
+  7.     quietly levelsof o, local(OL)
+  8.     local no : word count `OL'
+  9.     quietly regress ln_p c.ln_pdnoto##c.ln_pdnoto
+ 10.     quietly predict double phat, xb
+ 11.     capture quietly ivregress 2sls ln_wage (ln_p = phat) i.o i.d
+ 12.     if _rc == 0 {
+ 13.         local th = -1/_b[ln_p]
+ 14.         display "  设定 `tag'        `no'      `n'      " %8.4f `th'
+ 15.     }
+ 16.     else {
+ 17.         display "  设定 `tag'  回归失败 rc = " _rc
+ 18.     }
+ 19.     capture drop phat
+ 20. }
+  设定 A        16      198       10.5507
+  设定 B        16      198       10.5977
+
+. 
+. display _n(2) "{hline 88}"
+
+
+----------------------------------------------------------------------------------------
+
+. log close
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\geo_relax_test_out.log
+  log type:  text
+ closed on:  26 Oct 2026, 13:30:08
+--------------------------------------------------------------------------------------------------------------------------------------------

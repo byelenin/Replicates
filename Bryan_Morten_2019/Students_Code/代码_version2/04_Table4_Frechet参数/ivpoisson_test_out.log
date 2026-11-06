@@ -1,0 +1,833 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\ivpoisson_test_out.log
+  log type:  text
+ opened on:  22 Oct 2026, 21:24:38
+
+. 
+. * ---- 距离 ----
+. import delimited "`fz'\idn_prov_dist25.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(3 vars, 625 obs)
+
+. destring o, replace
+o already numeric; no replace
+
+. destring d, replace
+d already numeric; no replace
+
+. destring dist_km, replace force
+dist_km already numeric; no replace
+
+. keep o d dist_km
+
+. tempfile iddist
+
+. save `iddist'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_000001.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_fips2usps.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(2 vars, 51 obs)
+
+. destring state_fips, replace
+state_fips already numeric; no replace
+
+. rename state_fips o
+
+. tempfile f2u
+
+. save `f2u'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_000002.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. rename o d
+
+. rename lat_o lat_d
+
+. rename lon_o lon_d
+
+. tempfile c_d
+
+. save `c_d'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_000003.tmp saved as .dta format
+
+. 
+. import delimited "`fz'\us_state_centroids.csv", clear varnames(1)
+(encoding automatically selected: ISO-8859-1)
+(9 vars, 51 obs)
+
+. keep usps lat lon
+
+. merge 1:1 usps using `f2u', keep(match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                51  
+    -----------------------------------------
+
+. keep o lat lon
+
+. rename lat lat_o
+
+. rename lon lon_o
+
+. tempfile c_o
+
+. save `c_o'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_000004.tmp saved as .dta format
+
+. 
+. use `c_o', clear
+
+. cross using `c_d'
+
+. gen double _pio = _pi/180
+
+. gen double _dla = (lat_d - lat_o)*_pio
+
+. gen double _dlo = (lon_d - lon_o)*_pio
+
+. gen double _a = sin(_dla/2)^2 + cos(lat_o*_pio)*cos(lat_d*_pio)*sin(_dlo/2)^2
+
+. gen double dist_km = 2*6371*asin(min(1, sqrt(_a)))
+
+. keep o d dist_km
+
+. tempfile usdist
+
+. save `usdist'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_000005.tmp saved as .dta format
+
+. 
+. * ---- 美国面板 ----
+. import delimited "`ussrc'", clear varnames(1) colrange(1:5)
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 2,333,166 obs)
+
+. capture destring o, replace
+
+. capture destring d, replace
+
+. capture destring year, replace
+
+. capture destring wage, replace force
+
+. capture destring w, replace force
+
+. keep o d year wage w
+
+. drop if missing(o) | missing(d) | missing(year)
+(0 observations deleted)
+
+. drop if missing(w) | w <= 0
+(102 observations deleted)
+
+. keep if year == 1990
+(326,127 observations deleted)
+
+. gen byte hasw = !missing(wage) & wage > 0
+
+. gen byte one = 1
+
+. gen double wgt_wg = w if hasw
+(186,821 missing values generated)
+
+. gen double wx_w = w*wage if hasw
+(186,821 missing values generated)
+
+. gen double wage_ok = wage if hasw
+(186,821 missing values generated)
+
+. collapse (sum) m_wg=wgt_wg (sum) wx_w=wx_w (count) n_raw=one (count) n_wage=wage_ok, by(o d)
+
+. gen double wage_od = wx_w/m_wg if m_wg > 0
+(3 missing values generated)
+
+. rename m_wg m_od
+
+. keep if m_od > 0 & !missing(wage_od) & wage_od > 0
+(3 observations deleted)
+
+. bysort o: egen double pop_o = total(m_od)
+
+. bysort d: egen double m_in_d = total(m_od)
+
+. egen double pop_all = total(m_od)
+
+. gen double pi_do = m_od/pop_o
+
+. preserve
+
+.     keep if o == d
+(2,539 observations deleted)
+
+.     keep o pi_do
+
+.     rename pi_do pi_oo
+
+.     tempfile go
+
+.     save `go'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_000007.tmp saved as .dta format
+
+.     rename o d
+
+.     rename pi_oo pi_dd
+
+.     tempfile gd
+
+.     save `gd'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_000008.tmp saved as .dta format
+
+. restore
+
+. preserve
+
+.     keep o d pi_do
+
+.     rename o _t1
+
+.     rename d _t2
+
+.     rename _t1 d
+
+.     rename _t2 o
+
+.     rename pi_do pi_rev
+
+.     tempfile rv
+
+.     save `rv'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_00000a.tmp saved as .dta format
+
+. restore
+
+. gen double pi_dnoto = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+
+. keep if o != d
+(51 observations deleted)
+
+. merge m:1 o using `go', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+. merge m:1 d using `gd', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+. merge 1:1 o d using `rv', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            11
+        from master                        11  
+        from using                          0  
+
+    Matched                             2,528  
+    -----------------------------------------
+
+. merge 1:1 o d using `usdist', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             2,539  
+    -----------------------------------------
+
+. keep if !missing(pi_do) & pi_do > 0
+(0 observations deleted)
+
+. keep if !missing(pi_rev) & pi_rev > 0
+(11 observations deleted)
+
+. keep if !missing(pi_oo) & pi_oo > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dd) & pi_dd > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dnoto) & pi_dnoto > 0
+(0 observations deleted)
+
+. keep if !missing(dist_km) & dist_km > 0
+(0 observations deleted)
+
+. keep if n_raw >= 5
+(84 observations deleted)
+
+. gen double ln_p      = ln(pi_do)
+
+. gen double ln_p_rev  = ln(pi_rev)
+
+. gen double ln_poo    = ln(pi_oo)
+
+. gen double ln_pdd    = ln(pi_dd)
+
+. gen double ln_pdnoto = ln(pi_dnoto)
+
+. gen double ln_wage   = ln(wage_od)
+
+. tempfile uspanel
+
+. save `uspanel'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_00000b.tmp saved as .dta format
+
+. quietly count
+
+. display "  美国面板：`r(N)' 个 OD 对"
+  美国面板：2444 个 OD 对
+
+. 
+. * ---- 印尼面板 ----
+. use year bplid geo1_id incwage perwt relate sex age using "`root'\ipumsi_00002.dta", clear
+
+. keep if year == 1995
+(23,603,049 observations deleted)
+
+. keep if sex == 1 & relate == 1 & inrange(age, 15, 65)
+(583,784 observations deleted)
+
+. gen int o = bplid
+
+. gen int d = geo1_id - 360000
+
+. keep if inrange(o, 11, 18) | inrange(o, 31, 35) | inrange(o, 51, 54)
+(1,491 observations deleted)
+
+. keep if inrange(d, 11, 18) | inrange(d, 31, 35) | inrange(d, 51, 54)
+(4,963 observations deleted)
+
+. gen byte hasw = !missing(incwage) & incwage > 0 & incwage < 9999999
+
+. gen byte one = 1
+
+. gen double wgt_wg = perwt if hasw
+(80,101 missing values generated)
+
+. gen double wx_w = perwt*incwage if hasw
+(80,101 missing values generated)
+
+. gen double wage_ok = incwage if hasw
+(80,101 missing values generated)
+
+. collapse (sum) m_wg=wgt_wg (sum) wx_w=wx_w (count) n_raw=one (count) n_wage=wage_ok, by(o d)
+
+. gen double wage_od = wx_w/m_wg if m_wg > 0
+(15 missing values generated)
+
+. rename m_wg m_od
+
+. keep if m_od > 0 & !missing(wage_od) & wage_od > 0
+(15 observations deleted)
+
+. bysort o: egen double pop_o = total(m_od)
+
+. bysort d: egen double m_in_d = total(m_od)
+
+. egen double pop_all = total(m_od)
+
+. gen double pi_do = m_od/pop_o
+
+. preserve
+
+.     keep if o == d
+(208 observations deleted)
+
+.     keep o pi_do
+
+.     rename pi_do pi_oo
+
+.     tempfile igo
+
+.     save `igo'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_00000d.tmp saved as .dta format
+
+.     rename o d
+
+.     rename pi_oo pi_dd
+
+.     tempfile igd
+
+.     save `igd'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_00000e.tmp saved as .dta format
+
+. restore
+
+. preserve
+
+.     keep o d pi_do
+
+.     rename o _t1
+
+.     rename d _t2
+
+.     rename _t1 d
+
+.     rename _t2 o
+
+.     rename pi_do pi_rev
+
+.     tempfile irv
+
+.     save `irv'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_00000g.tmp saved as .dta format
+
+. restore
+
+. gen double pi_dnoto = (m_in_d - m_od)/(pop_all - pop_o) if (pop_all - pop_o) > 0
+
+. keep if o != d
+(16 observations deleted)
+
+. merge m:1 o using `igo', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             4
+        from master                         4  
+        from using                          0  
+
+    Matched                               204  
+    -----------------------------------------
+
+. merge m:1 d using `igd', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               208  
+    -----------------------------------------
+
+. merge 1:1 o d using `irv', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            32
+        from master                        32  
+        from using                          0  
+
+    Matched                               176  
+    -----------------------------------------
+
+. merge 1:1 o d using `iddist', keep(master match) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             4
+        from master                         4  
+        from using                          0  
+
+    Matched                               204  
+    -----------------------------------------
+
+. keep if !missing(pi_do) & pi_do > 0
+(0 observations deleted)
+
+. keep if !missing(pi_rev) & pi_rev > 0
+(32 observations deleted)
+
+. keep if !missing(pi_oo) & pi_oo > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dd) & pi_dd > 0
+(0 observations deleted)
+
+. keep if !missing(pi_dnoto) & pi_dnoto > 0
+(0 observations deleted)
+
+. keep if !missing(dist_km) & dist_km > 0
+(0 observations deleted)
+
+. keep if n_raw >= 5
+(25 observations deleted)
+
+. gen double ln_p      = ln(pi_do)
+
+. gen double ln_p_rev  = ln(pi_rev)
+
+. gen double ln_poo    = ln(pi_oo)
+
+. gen double ln_pdd    = ln(pi_dd)
+
+. gen double ln_pdnoto = ln(pi_dnoto)
+
+. gen double ln_wage   = ln(wage_od)
+
+. tempfile idpanel
+
+. save `idpanel'
+file C:\Users\任娜\AppData\Local\Temp\ST_86f0_00000h.tmp saved as .dta format
+
+. quietly count
+
+. display "  印尼面板：`r(N)' 个 OD 对"
+  印尼面板：151 个 OD 对
+
+. 
+. *==============================================================================
+. * 正式测试
+. *==============================================================================
+. foreach cc in id us {
+  2.     if "`cc'" == "id" {
+  3.         use `idpanel', clear
+  4.         local lab "印尼 1995"
+  5.         local pobj "论文 θ = 12.5"
+  6.     }
+  7.     if "`cc'" == "us" {
+  8.         use `uspanel', clear
+  9.         local lab "美国 1990"
+ 10.         local pobj "论文 θ = 27.6"
+ 11.     }
+ 12. 
+.     display _n(2) "{hline 80}"
+ 13.     display "  `lab'      （`pobj'）"
+ 14.     display "{hline 80}"
+ 15. 
+.     quietly count
+ 16.     display "  OD 对数：`r(N)'"
+ 17. 
+.     * 零阶段
+.     quietly regress ln_p c.ln_pdnoto##c.ln_pdnoto
+ 18.     display "  零阶段 R² = " %6.4f e(r2)
+ 19.     quietly predict double phat, xb
+ 20. 
+.     * ---------- 方法甲：控制函数法（两步）----------
+.     timer clear 1
+ 21.     timer on 1
+ 22.     quietly capture reghdfe ln_p phat, absorb(o d) residuals(u)
+ 23.     if _rc == 0 {
+ 24.         quietly capture ppmlhdfe wage_od ln_p u, absorb(o d) cluster(o)
+ 25.         if _rc == 0 {
+ 26.             local bA = _b[ln_p]
+ 27.         }
+ 28.         else {
+ 29.             local bA = .
+ 30.         }
+ 31.     }
+ 32.     else {
+ 33.         local bA = .
+ 34.     }
+ 35.     timer off 1
+ 36.     display _n "  【甲】控制函数法：reghdfe + ppmlhdfe 两步"
+ 37.     timer list 1
+ 38.     if `bA' != . & `bA' < 0 {
+ 39.         display "      θ = " %8.4f -1/`bA'
+ 40.     }
+ 41.     else {
+ 42.         display "      失败或 β 为正"
+ 43.     }
+ 44. 
+.     * ---------- 方法乙：ivpoisson gmm（一步到位，固定效应当回归元）----------
+.     timer clear 2
+ 45.     timer on 2
+ 46.     capture noisily ivpoisson gmm wage_od (ln_p = phat) i.o i.d
+ 47.     local rcB = _rc
+ 48.     timer off 2
+ 49.     display _n "  【乙】ivpoisson gmm：PPML + IV + GMM + 固定效应虚拟变量"
+ 50.     display "      返回码 = `rcB'"
+ 51.     timer list 2
+ 52.     if `rcB' == 0 {
+ 53.         local bB = _b[ln_p]
+ 54.         if `bB' < 0 {
+ 55.             display "      θ = " %8.4f -1/`bB'
+ 56.         }
+ 57.         else {
+ 58.             display "      β 为正，θ 无解"
+ 59.         }
+ 60.     }
+ 61. }
+
+
+--------------------------------------------------------------------------------
+  印尼 1995      （论文 θ = 12.5）
+--------------------------------------------------------------------------------
+  OD 对数：151
+  零阶段 R² = 0.2025
+
+  【甲】控制函数法：reghdfe + ppmlhdfe 两步
+   1:      0.81 /        1 =       0.8080
+      θ =  10.3728
+
+Step 1:
+Iteration 0:  GMM criterion Q(b) = 2.843e+08  
+Iteration 1:  GMM criterion Q(b) = 622064.42  
+Iteration 2:  GMM criterion Q(b) = 2.9578125  
+Iteration 3:  GMM criterion Q(b) = 8.168e-11  
+Iteration 4:  GMM criterion Q(b) = 1.453e-20  
+
+Step 2:
+Iteration 0:  GMM criterion Q(b) = 4.645e-30  
+Iteration 1:  GMM criterion Q(b) = 4.645e-30  (backed up)
+
+note: model is exactly identified.
+
+Exponential mean model with endogenous regressors
+
+Number of parameters =  34                         Number of obs  =        151
+Number of moments    =  32
+Initial weight matrix: Unadjusted
+GMM weight matrix:     Robust
+
+------------------------------------------------------------------------------
+             |               Robust
+     wage_od | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        ln_p |  -.0928912   .0579197    -1.60   0.109    -.2064117    .0206293
+             |
+           o |
+         12  |   -.085066   .1053841    -0.81   0.420    -.2916151    .1214831
+         13  |   .1427108   .1129859     1.26   0.207    -.0787375    .3641592
+         14  |   .0154876    .170057     0.09   0.927     -.317818    .3487933
+         15  |   .0154984   .1358539     0.11   0.909    -.2507705    .2817672
+         16  |   .0380254   .1370013     0.28   0.781    -.2304922    .3065431
+         17  |  -.0515301   .0919492    -0.56   0.575    -.2317473    .1286871
+         18  |  -.2186395   .1084228    -2.02   0.044    -.4311443   -.0061346
+         31  |    .150641   .1114035     1.35   0.176    -.0677058    .3689878
+         32  |  -.2732647    .103142    -2.65   0.008    -.4754194     -.07111
+         33  |  -.2242862   .0870779    -2.58   0.010    -.3949557   -.0536167
+         34  |  -.0330559   .1145089    -0.29   0.773    -.2574891    .1913774
+         35  |  -.2531046   .0858677    -2.95   0.003    -.4214022    -.084807
+         51  |    .203773   .1619154     1.26   0.208    -.1135753    .5211214
+         52  |  -.3198499   .1218729    -2.62   0.009    -.5587165   -.0809834
+         53  |  -.0697751   .1133474    -0.62   0.538    -.2919319    .1523816
+             |
+           d |
+         12  |   .3368803    .127721     2.64   0.008     .0865518    .5872088
+         13  |  -.1145703   .1372278    -0.83   0.404    -.3835319    .1543912
+         14  |   .3208907   .1140311     2.81   0.005     .0973938    .5443877
+         15  |   .1058505     .14529     0.73   0.466    -.1789126    .3906136
+         16  |   .2239393   .1279726     1.75   0.080    -.0268824     .474761
+         17  |  -.0632523   .1458975    -0.43   0.665    -.3492061    .2227016
+         18  |   .0185069   .1389621     0.13   0.894    -.2538538    .2908675
+         31  |   .6613617   .1688869     3.92   0.000     .3303494     .992374
+         32  |    .684617   .1875226     3.65   0.000     .3170794    1.052154
+         33  |   .2897046   .1570524     1.84   0.065    -.0181124    .5975217
+         34  |   .4001475   .1580636     2.53   0.011     .0903485    .7099465
+         35  |   .3559195   .1223887     2.91   0.004     .1160421    .5957969
+         51  |   .3231043   .0933151     3.46   0.001     .1402101    .5059986
+         52  |   .0666127   .1180699     0.56   0.573       -.1648    .2980255
+         53  |   .0115351   .1421496     0.08   0.935     -.267073    .2901431
+             |
+       _cons |   12.02629   .3662431    32.84   0.000     11.30847    12.74412
+------------------------------------------------------------------------------
+Endogenous: ln_p
+Exogenous:  12.o 13.o 14.o 15.o 16.o 17.o 18.o 31.o 32.o 33.o 34.o 35.o 51.o 52.o 53.o 12.d 13.d 14.d 15.d 16.d 17.d 18.d 31.d 32.d 33.d 34.d 35.d
+            51.d 52.d 53.d phat
+
+  【乙】ivpoisson gmm：PPML + IV + GMM + 固定效应虚拟变量
+      返回码 = 0
+   2:     19.14 /        1 =      19.1360
+      θ =  10.7653
+
+
+--------------------------------------------------------------------------------
+  美国 1990      （论文 θ = 27.6）
+--------------------------------------------------------------------------------
+  OD 对数：2444
+  零阶段 R² = 0.3859
+
+  【甲】控制函数法：reghdfe + ppmlhdfe 两步
+   1:      0.19 /        1 =       0.1910
+      θ =  30.2548
+
+Step 1:
+Iteration 0:  GMM criterion Q(b) = 2332.2433  
+Iteration 1:  GMM criterion Q(b) = .64292439  
+Iteration 2:  GMM criterion Q(b) = 1.090e-07  
+Iteration 3:  GMM criterion Q(b) = 8.328e-21  
+
+Step 2:
+Iteration 0:  GMM criterion Q(b) = 1.415e-26  
+Iteration 1:  GMM criterion Q(b) = 2.488e-30  
+
+note: model is exactly identified.
+
+Exponential mean model with endogenous regressors
+
+Number of parameters = 104                         Number of obs  =      2,444
+Number of moments    = 102
+Initial weight matrix: Unadjusted
+GMM weight matrix:     Robust
+
+------------------------------------------------------------------------------
+             |               Robust
+     wage_od | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        ln_p |  -.0335209   .0033414   -10.03   0.000    -.0400699   -.0269719
+             |
+           o |
+          2  |   -.060617   .0426381    -1.42   0.155    -.1441862    .0229522
+          4  |  -.0687231   .0286621    -2.40   0.016    -.1248998   -.0125465
+          5  |   .0378177   .0272125     1.39   0.165    -.0155177    .0911532
+          6  |   .0262171   .0206975     1.27   0.205    -.0143493    .0667834
+          8  |   .0684261   .0236301     2.90   0.004     .0221119    .1147403
+          9  |    .191108    .024423     7.82   0.000     .1432398    .2389763
+         10  |    .135182    .046885     2.88   0.004     .0432892    .2270748
+         11  |   .2350028   .0324415     7.24   0.000     .1714186    .2985869
+         12  |  -.0127627   .0248843    -0.51   0.608     -.061535    .0360096
+         13  |   .0211438   .0294037     0.72   0.472    -.0364865    .0787741
+         15  |  -.0555003   .0309796    -1.79   0.073    -.1162193    .0052187
+         16  |    .142165   .0353581     4.02   0.000     .0728644    .2114656
+         17  |   .1693535   .0210838     8.03   0.000     .1280301     .210677
+         18  |   .1093736   .0228111     4.79   0.000     .0646647    .1540825
+         19  |    .158054   .0234427     6.74   0.000     .1121072    .2040007
+         20  |   .1300881   .0233401     5.57   0.000     .0843422    .1758339
+         21  |   .0885281   .0238111     3.72   0.000     .0418591    .1351971
+         22  |   .0288142   .0246988     1.17   0.243    -.0195945     .077223
+         23  |   .0800662   .0308565     2.59   0.009     .0195886    .1405438
+         24  |   .0962937   .0273146     3.53   0.000      .042758    .1498294
+         25  |   .1928881   .0222712     8.66   0.000     .1492374    .2365388
+         26  |   .1206957   .0228143     5.29   0.000     .0759805    .1654109
+         27  |   .1467747   .0225487     6.51   0.000     .1025801    .1909693
+         28  |  -.0155871   .0303045    -0.51   0.607     -.074983    .0438087
+         29  |   .1562826   .0219041     7.13   0.000     .1133514    .1992137
+         30  |   .1434438    .028069     5.11   0.000     .0884296    .1984579
+         31  |   .1693646   .0262296     6.46   0.000     .1179556    .2207736
+         32  |    .059447    .059707     1.00   0.319    -.0575766    .1764705
+         33  |   .0663042   .0322899     2.05   0.040     .0030172    .1295911
+         34  |    .194838   .0237395     8.21   0.000     .1483094    .2413666
+         35  |   .0171262   .0287204     0.60   0.551    -.0391649    .0734172
+         36  |   .2313495   .0213673    10.83   0.000     .1894704    .2732286
+         37  |   .0091673   .0265188     0.35   0.730    -.0428086    .0611431
+         38  |   .1530226   .0279924     5.47   0.000     .0981585    .2078867
+         39  |   .1417044    .020793     6.82   0.000     .1009509    .1824578
+         40  |   .1176956   .0229895     5.12   0.000      .072637    .1627542
+         41  |   .0575302   .0245489     2.34   0.019     .0094152    .1056452
+         42  |   .1766378   .0211962     8.33   0.000      .135094    .2181817
+         44  |   .1123941   .0296182     3.79   0.000     .0543436    .1704447
+         45  |  -.0139471   .0336086    -0.41   0.678    -.0798187    .0519245
+         46  |   .1620059   .0263212     6.15   0.000     .1104173    .2135945
+         47  |   .0768987    .024995     3.08   0.002     .0279094    .1258879
+         48  |   .0188023   .0228308     0.82   0.410    -.0259452    .0635498
+         49  |   .1672924   .0304856     5.49   0.000     .1075417     .227043
+         50  |   .0538486    .043315     1.24   0.214    -.0310472    .1387444
+         51  |  -.0174185    .024141    -0.72   0.471    -.0647339    .0298969
+         53  |   .1046033   .0231118     4.53   0.000     .0593049    .1499017
+         54  |   .0755252   .0242435     3.12   0.002     .0280089    .1230415
+         55  |   .1480504   .0239056     6.19   0.000     .1011961    .1949046
+         56  |   .1086399   .0298653     3.64   0.000      .050105    .1671748
+             |
+           d |
+          2  |   .1185138   .0271434     4.37   0.000     .0653138    .1717139
+          4  |   -.016439    .021233    -0.77   0.439    -.0580548    .0251769
+          5  |  -.2513899   .0295157    -8.52   0.000    -.3092395   -.1935402
+          6  |   .2860171   .0204588    13.98   0.000     .2459186    .3261156
+          8  |   .0177507   .0196107     0.91   0.365    -.0206855     .056187
+          9  |   .2956765   .0233611    12.66   0.000     .2498896    .3414633
+         10  |   .1691143   .0334735     5.05   0.000     .1035075    .2347211
+         11  |   .4013282   .0227493    17.64   0.000     .3567404    .4459159
+         12  |   .0046277   .0211831     0.22   0.827    -.0368904    .0461458
+         13  |   .1247456   .0222308     5.61   0.000      .081174    .1683173
+         15  |   -.085091   .0268653    -3.17   0.002    -.1377461    -.032436
+         16  |  -.2117191   .0380445    -5.57   0.000     -.286285   -.1371532
+         17  |   .2810344   .0302618     9.29   0.000     .2217223    .3403465
+         18  |   .0112471   .0271509     0.41   0.679    -.0419677    .0644618
+         19  |   -.078861   .0453522    -1.74   0.082    -.1677497    .0100276
+         20  |  -.0940816   .0270165    -3.48   0.000     -.147033   -.0411303
+         21  |  -.0838885   .0256836    -3.27   0.001    -.1342274   -.0335497
+         22  |   .0069648   .0241997     0.29   0.773    -.0404658    .0543954
+         23  |  -.1829456   .0333187    -5.49   0.000     -.248249   -.1176422
+         24  |    .216089   .0235927     9.16   0.000      .169848    .2623299
+         25  |   .2780585   .0245226    11.34   0.000     .2299951    .3261219
+         26  |   .1993928   .0233456     8.54   0.000     .1536363    .2451494
+         27  |   .1107055   .0267324     4.14   0.000     .0583109    .1631001
+         28  |  -.1420376    .044188    -3.21   0.001    -.2286446   -.0554307
+         29  |   .0269849   .0240599     1.12   0.262    -.0201716    .0741414
+         30  |  -.2768201    .035888    -7.71   0.000    -.3471592    -.206481
+         31  |   -.104762   .0348132    -3.01   0.003    -.1729946   -.0365295
+         32  |  -.0829044   .0249816    -3.32   0.001    -.1318675   -.0339414
+         33  |   .0352961   .0295864     1.19   0.233    -.0226922    .0932843
+         34  |   .3240223   .0239789    13.51   0.000     .2770244    .3710202
+         35  |  -.1264102   .0238308    -5.30   0.000    -.1731177   -.0797026
+         36  |   .3168577   .0263391    12.03   0.000     .2652339    .3684815
+         37  |  -.0414709    .022063    -1.88   0.060    -.0847137    .0017719
+         38  |  -.3837875   .0427139    -8.99   0.000    -.4675053   -.3000697
+         39  |   .1307286   .0213847     6.11   0.000     .0888153    .1726419
+         40  |  -.1260707   .0247546    -5.09   0.000    -.1745888   -.0775525
+         41  |  -.0791105   .0234432    -3.37   0.001    -.1250583   -.0331628
+         42  |   .1834784   .0221591     8.28   0.000     .1400474    .2269095
+         44  |   .0209461   .0282476     0.74   0.458    -.0344183    .0763104
+         45  |  -.0870997   .0250791    -3.47   0.001    -.1362539   -.0379454
+         46  |  -.4357595   .0442262    -9.85   0.000    -.5224412   -.3490778
+         47  |   .0170794   .0270765     0.63   0.528    -.0359896    .0701483
+         48  |   .1271915    .020008     6.36   0.000     .0879764    .1664065
+         49  |   -.087531   .0233626    -3.75   0.000    -.1333208   -.0417412
+         50  |  -.1427253   .0413062    -3.46   0.001     -.223684   -.0617666
+         51  |   .1291029   .0201612     6.40   0.000     .0895876    .1686181
+         53  |   .0197129   .0192745     1.02   0.306    -.0180645    .0574902
+         54  |  -.1353772   .0397337    -3.41   0.001    -.2132538   -.0575007
+         55  |   .0187963   .0296959     0.63   0.527    -.0394066    .0769991
+         56  |  -.2398079   .0312105    -7.68   0.000    -.3009793   -.1786366
+             |
+       _cons |   7.668046    .031648   242.29   0.000     7.606017    7.730075
+------------------------------------------------------------------------------
+Endogenous: ln_p
+Exogenous:  2.o 4.o 5.o 6.o 8.o 9.o 10.o 11.o 12.o 13.o 15.o 16.o 17.o 18.o 19.o 20.o 21.o 22.o 23.o 24.o 25.o 26.o 27.o 28.o 29.o 30.o 31.o 32.o
+            33.o 34.o 35.o 36.o 37.o 38.o 39.o 40.o 41.o 42.o 44.o 45.o 46.o 47.o 48.o 49.o 50.o 51.o 53.o 54.o 55.o 56.o 2.d 4.d 5.d 6.d 8.d 9.d
+            10.d 11.d 12.d 13.d 15.d 16.d 17.d 18.d 19.d 20.d 21.d 22.d 23.d 24.d 25.d 26.d 27.d 28.d 29.d 30.d 31.d 32.d 33.d 34.d 35.d 36.d 37.d
+            38.d 39.d 40.d 41.d 42.d 44.d 45.d 46.d 47.d 48.d 49.d 50.d 51.d 53.d 54.d 55.d 56.d phat
+
+  【乙】ivpoisson gmm：PPML + IV + GMM + 固定效应虚拟变量
+      返回码 = 0
+   2:    449.47 /        1 =     449.4720
+      θ =  29.8321
+
+. 
+. display _n(2) "{hline 80}"
+
+
+--------------------------------------------------------------------------------
+
+. display "  说明"
+  说明
+
+. display "{hline 80}"
+--------------------------------------------------------------------------------
+
+. display "  甲 = 我们现在用的（两步控制函数）"
+  甲 = 我们现在用的（两步控制函数）
+
+. display "  乙 = 论文的方法：PPML + IV + GMM + 固定效应，一步到位"
+  乙 = 论文的方法：PPML + IV + GMM + 固定效应，一步到位
+
+. display "  如果乙能跑通且不慢，就不需要自己编写程序了"
+  如果乙能跑通且不慢，就不需要自己编写程序了
+
+. 
+. log close
+      name:  <unnamed>
+       log:  D:\研一上\微观计量\复现\ivpoisson_test_out.log
+  log type:  text
+ closed on:  22 Oct 2026, 21:32:46
+------------------------------------------------------------------------------------------------------------------------------------------------------
